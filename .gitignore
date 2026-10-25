@@ -1,0 +1,37 @@
+# Environment & Secrets (NEVER push API keys or passwords to GitHub!)
+.env
+*.env
+!.env.example
+
+# Python bytecode & caching
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Testing & Linting caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS metadata
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Temporary logs & scratch
+*.log
+scratch/
