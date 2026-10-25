@@ -23,8 +23,10 @@ from langgraph.graph import END, StateGraph
 
 from app.knowledge.config import (
     GEMINI_API_KEY,
+    GEMINI_API_KEYS,
     GEMINI_MODEL,
     GROQ_API_KEY,
+    GROQ_API_KEYS,
     GROQ_MODEL,
 )
 from app.knowledge.reranker import reranker
@@ -45,12 +47,12 @@ logger = logging.getLogger(__name__)
 # Dual LLM Provider Manager (Groq Primary with Google Gemini Fallback)
 # ---------------------------------------------------------------------------
 class DualLLMManager:
-    """Manages primary Groq Llama 3.1 8B and automatic Google Gemini API fallback."""
+    """Manages primary Groq Llama 3.1 8B and automatic Google Gemini API fallback with key rotation."""
 
     def __init__(self) -> None:
-        self.groq_api_key = GROQ_API_KEY
+        self.groq_api_keys = GROQ_API_KEYS
         self.groq_model = GROQ_MODEL
-        self.gemini_api_key = GEMINI_API_KEY
+        self.gemini_api_keys = GEMINI_API_KEYS
         self.gemini_model = GEMINI_MODEL
 
     def invoke(
@@ -59,7 +61,7 @@ class DualLLMManager:
         user_prompt: str,
         temperature: float = 0.1,
     ) -> Tuple[str, str, str]:
-        """Invoke primary Groq LLM with automatic fallback to Google Gemini.
+        """Invoke primary Groq LLM with automatic fallback to Google Gemini (supporting multi-key failover).
 
         Returns: (response_text, provider_name, model_name)
         """
@@ -68,46 +70,54 @@ class DualLLMManager:
             HumanMessage(content=user_prompt),
         ]
 
-        # 1. Primary: Groq Llama 3.1 8B
-        if self.groq_api_key:
+        # 1. Primary: Groq Llama 3.1 8B (with key failover)
+        for idx, g_key in enumerate(self.groq_api_keys):
             try:
                 from langchain_groq import ChatGroq
 
-                logger.info("Invoking primary LLM: Groq (%s)...", self.groq_model)
+                logger.info("Invoking primary LLM: Groq (%s) using key #%d...", self.groq_model, idx + 1)
                 groq_llm = ChatGroq(
                     model_name=self.groq_model,
-                    groq_api_key=self.groq_api_key,
+                    groq_api_key=g_key,
                     temperature=temperature,
                     timeout=15.0,
                     max_retries=1,
                 )
                 response = groq_llm.invoke(messages)
                 content = str(response.content)
-                logger.info("Groq response received successfully.")
+                logger.info("Groq response received successfully using key #%d.", idx + 1)
                 return content, "groq", self.groq_model
             except Exception as exc:
-                logger.warning("Primary Groq LLM failed or rate-limited (%s). Attempting Gemini fallback...", exc)
+                logger.warning("Groq key #%d failed or rate-limited: %s. Trying next...", idx + 1, exc)
 
-        # 2. Fallback: Google Gemini API
-        if self.gemini_api_key:
+        # 2. Fallback: Google Gemini API (with comma-separated multi-key rotation)
+        for idx, gm_key in enumerate(self.gemini_api_keys):
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
 
-                logger.info("Invoking fallback LLM: Google Gemini (%s)...", self.gemini_model)
+                masked_key = gm_key[:6] + "..." + gm_key[-4:] if len(gm_key) > 10 else "***"
+                logger.info("Invoking fallback LLM: Google Gemini (%s) using key #%d (%s)...", self.gemini_model, idx + 1, masked_key)
+                
                 gemini_llm = ChatGoogleGenerativeAI(
                     model=self.gemini_model,
-                    google_api_key=self.gemini_api_key,
+                    google_api_key=gm_key,
                     temperature=temperature,
-                    timeout=15.0,
+                    timeout=20.0,
                 )
                 response = gemini_llm.invoke(messages)
                 content = str(response.content)
-                logger.info("Google Gemini fallback response received successfully.")
+                logger.info("Google Gemini response successfully received using key #%d!", idx + 1)
                 return content, "gemini", self.gemini_model
             except Exception as exc:
-                logger.warning("Google Gemini fallback also failed (%s). Utilizing rule-based engine.", exc)
+                logger.warning(
+                    "Google Gemini key #%d failed (%s). Rotating to next configured key...",
+                    idx + 1,
+                    exc,
+                )
 
-        # 3. Deterministic Fallback if neither API key is active or both fail
+        # 3. Deterministic Fallback if neither API key is active or all remote keys fail
+        logger.info("All LLM keys exhausted or unavailable. Utilizing deterministic regulatory compliance engine.")
+        return "", "rule_based_fallback", "deterministic-rules-engine"
         logger.info("Utilizing deterministic regulatory compliance engine.")
         return "", "rule_based_fallback", "deterministic-rules-engine"
 

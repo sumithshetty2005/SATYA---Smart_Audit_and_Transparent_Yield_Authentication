@@ -2,15 +2,20 @@
 
 import os
 from pathlib import Path
+from typing import List
 from dotenv import load_dotenv
 
-# Automatically load .env if present
+# Search and load .env from root or backend directory
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
-dotenv_path = ROOT_DIR / ".env"
-if dotenv_path.exists():
-    load_dotenv(dotenv_path=dotenv_path)
-else:
-    load_dotenv()
+possible_env_paths = [
+    ROOT_DIR / ".env",
+    ROOT_DIR / "backend" / ".env",
+]
+for p in possible_env_paths:
+    if p.exists():
+        load_dotenv(dotenv_path=p, override=True)
+
+load_dotenv()
 
 # Neo4j Settings
 NEO4J_URI = os.getenv("NEO4J_URI", os.getenv("NEO4J_URL", "bolt://localhost:7687"))
@@ -18,12 +23,22 @@ NEO4J_USER = os.getenv("NEO4J_USER", os.getenv("NEO4J_USERNAME", "neo4j"))
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
 NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
 
-# LLM Providers
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+# LLM Providers - Comma-Separated Multi-Key Support
+def _parse_keys(env_val: str) -> List[str]:
+    """Parse comma-separated list of API keys, trimming whitespace and filtering empty."""
+    if not env_val:
+        return []
+    return [k.strip() for k in env_val.split(",") if k.strip()]
+
+_raw_groq = os.getenv("GROQ_API_KEY", "")
+GROQ_API_KEYS: List[str] = _parse_keys(_raw_groq)
+GROQ_API_KEY: str = GROQ_API_KEYS[0] if GROQ_API_KEYS else ""
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", ""))
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+_raw_gemini = os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", ""))
+GEMINI_API_KEYS: List[str] = _parse_keys(_raw_gemini)
+GEMINI_API_KEY: str = GEMINI_API_KEYS[0] if GEMINI_API_KEYS else ""
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 # Embedding Configuration
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "BAAI/bge-m3")
