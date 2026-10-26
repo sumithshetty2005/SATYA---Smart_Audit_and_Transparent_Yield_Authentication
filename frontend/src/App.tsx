@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import campusImage from './assets/satya-campus.jpg';
 import { gsap } from 'gsap';
 import { ThreeBackground } from './components/ThreeBackground';
 import { DocumentFindingsView, type ScrutinyResult } from './components/DocumentFindingsView';
@@ -522,7 +523,7 @@ export function App() {
 
             <div className="relative min-h-[300px] overflow-hidden bg-[#263C3C] sm:min-h-[360px] lg:min-h-0" role="img" aria-label="Illustration of an institutional campus with an evidence review document">
               <img
-                src="/assets/satya-campus.jpg"
+                src={campusImage}
                 alt="University campus with historic brick academic buildings and a landscaped courtyard"
                 className="absolute inset-0 h-full w-full object-cover object-center"
               />
