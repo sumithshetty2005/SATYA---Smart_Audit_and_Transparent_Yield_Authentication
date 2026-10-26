@@ -111,7 +111,7 @@ class HybridGraphRetriever:
         # 1. Try Live Neo4j Vector Index if connected
         if graph_seeder.connect() and graph_seeder.driver:
             try:
-                with graph_seeder.driver.session(database=graph_seeder.database) as session:
+                with graph_seeder.get_session() as session:
                     cypher = """
                     CALL db.index.vector.queryNodes('clause_vector_index', $top_k, $query_vector)
                     YIELD node, score
@@ -184,7 +184,7 @@ class HybridGraphRetriever:
 
             if graph_seeder.connect() and graph_seeder.driver:
                 try:
-                    with graph_seeder.driver.session(database=graph_seeder.database) as session:
+                    with graph_seeder.get_session() as session:
                         cypher = """
                         MATCH (c:RegulatoryClause {clause_id: $cid})
                         OPTIONAL MATCH path = (c)-[r1]->(n1)

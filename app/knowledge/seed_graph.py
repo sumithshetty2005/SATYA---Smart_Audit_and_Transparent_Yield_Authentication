@@ -1,24 +1,40 @@
 """Layer 4 Task 2: Neo4j Knowledge Graph Seeding for AICTE Regulations.
 
-Connects to Neo4j using the Python driver.
-Extracts regulatory entities: (:RegulatoryClause), (:Programme), (:ApplicationType),
-(:Requirement), (:LocationType), (:Exception).
+Connects to Neo4j Aura / Local using the Python driver.
+Extracts regulatory entities:
+- (:Programme {name: 'Engineering and Technology', ...})
+- (:Level {name: 'Under Graduate', ...})
+- (:RegulatoryClause {id: 'Annexure 3.2.1', title: 'Instructional Area', ...})
+- (:Requirement {type: 'ClassroomsFormula', formula: 'Divisions * Duration * 0.5', ...})
+- (:Requirement {type: 'SFR', ratio: '1:20', ...})
+- (:TERFee {type: 'New Private Trust', amount_lakhs: 10.0, ...})
+- (:LocationType), (:ApplicationType), (:Exception)
+
 Establishes directed relationships:
 - (:Programme)-[:MANDATES]->(:Requirement)
+- (:Programme)-[:GOVERNED_BY]->(:RegulatoryClause)
+- (:Programme)-[:OFFERS_LEVEL]->(:Level)
+- (:Programme)-[:REQUIRES_FEE]->(:TERFee)
+- (:RegulatoryClause)-[:SPECIFIES]->(:Requirement)
 - (:RegulatoryClause)-[:HAS_EXCEPTION]->(:Exception)
 - (:RegulatoryClause)-[:APPLIES_TO]->(:LocationType)
-- (:RegulatoryClause)-[:SPECIFIES]->(:Requirement)
 - (:RegulatoryClause)-[:COVERS_PROGRAMME]->(:Programme)
 - (:RegulatoryClause)-[:FOR_APPLICATION_TYPE]->(:ApplicationType)
 
 Creates vector and full-text indexes in Neo4j (SHOW VECTOR INDEXES, SHOW FULLTEXT INDEXES)
-and provides an in-memory graph fallback when Neo4j daemon is unavailable.
+and provides an in-memory graph fallback when Neo4j is offline.
 """
 
 import json
 import logging
+import os
+from pathlib import Path
 import re
+import sys
 from typing import Any, Dict, List, Optional, Set, Tuple
+
+# Ensure project root is in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from neo4j import GraphDatabase
 
@@ -193,6 +209,12 @@ STANDARD_PROGRAMMES = [
     {"id": "prog_arch", "name": "Architecture", "degree": "UG"},
 ]
 
+STANDARD_LEVELS = [
+    {"id": "level_ug", "name": "Under Graduate", "description": "Undergraduate Degree level programs (e.g. B.Tech)"},
+    {"id": "level_pg", "name": "Post Graduate", "description": "Post Graduate Degree level programs (e.g. M.Tech, MBA, MCA)"},
+    {"id": "level_dip", "name": "Diploma", "description": "Diploma level programs in Engineering and Technology"},
+]
+
 STANDARD_APPLICATION_TYPES = [
     {"id": "app_new", "name": "Setting Up New Institution"},
     {"id": "app_eoa", "name": "Extension of Approval"},
@@ -208,7 +230,44 @@ STANDARD_LOCATION_TYPES = [
     {"id": "loc_hilly", "name": "Hilly Area", "description": "Designated hilly, tribal, or NER area"},
 ]
 
+STANDARD_TER_FEES = [
+    {
+        "id": "fee_ter_new_private_trust",
+        "type": "New Private Trust",
+        "amount_lakhs": 10.0,
+        "title": "TER Processing Fee (New Institution - Private Trust)",
+        "clause_ref": "Chapter I, Table 1.1 (ii)",
+        "description": "Technical Education Regulatory (TER) Charges for setting up a new Technical Institution: Rs. 10.00 Lakh for Private Trusts.",
+    },
+    {
+        "id": "fee_ter_govt",
+        "type": "Government Institution",
+        "amount_lakhs": 0.0,
+        "title": "TER Processing Fee (Government)",
+        "clause_ref": "Chapter I, Table 1.1 (i)",
+        "description": "Central / State Government / Union Territory Institutions: Nil.",
+    },
+]
+
 STANDARD_REQUIREMENTS = [
+    {
+        "id": "req_classrooms_formula",
+        "title": "Classroom Count Calculation",
+        "type": "ClassroomsFormula",
+        "formula": "Divisions * Duration * 0.5",
+        "metric": "classroom_count",
+        "description": "Required Classrooms = Total Divisions per year * Duration in years * 0.5 (Annexure 3.2.1 (A)).",
+    },
+    {
+        "id": "req_sfr_1_20",
+        "title": "Faculty to Student Ratio (1:20)",
+        "type": "SFR",
+        "ratio": "1:20",
+        "metric": "faculty_student_ratio",
+        "min_ratio_value": 20.0,
+        "unit": "ratio",
+        "description": "Undergraduate Engineering requires faculty to student ratio of 1:20 (Annexure 5.2).",
+    },
     {
         "id": "req_land_eng_rural",
         "title": "Minimum Land for Engineering (Rural)",
@@ -246,19 +305,9 @@ STANDARD_REQUIREMENTS = [
         "description": "Indisputable Land Use Certificate (CLU) for educational use from Competent Revenue Authority.",
     },
     {
-        "id": "req_fsr_ug_eng",
-        "title": "Faculty to Student Ratio (1:15 or 1:20)",
-        "type": "Faculty",
-        "metric": "faculty_student_ratio",
-        "ratio": "1:15",
-        "min_ratio_value": 15.0,
-        "unit": "ratio",
-        "description": "Undergraduate Engineering requires 1:15 for NBA accredited or 1:20 for approval.",
-    },
-    {
         "id": "req_fsr_pg_mgmt",
         "title": "Faculty to Student Ratio (1:20) for Management",
-        "type": "Faculty",
+        "type": "SFR",
         "metric": "faculty_student_ratio",
         "ratio": "1:20",
         "min_ratio_value": 20.0,
@@ -321,6 +370,89 @@ STANDARD_REQUIREMENTS = [
     },
 ]
 
+STANDARD_SPECIFIC_CLAUSES = [
+    {
+        "id": "Annexure 3.2.1",
+        "clause_id": "Annexure 3.2.1",
+        "title": "Instructional Area",
+        "section_id": "Chapter 4: Norms for Built-Up Infrastructure and Amenities",
+        "clause_reference": "Annexure 3.2.1 (A)",
+        "edition_year": "2024-2027",
+        "page_number": 3,
+        "text": "Instructional Area Requirements & Classroom Count Calculation. Minimum classrooms required = Total Divisions per year * Duration in years * 0.5.",
+    },
+    {
+        "id": "Annexure 3.1",
+        "clause_id": "Annexure 3.1",
+        "title": "Land Continuity & Distance Verification in Hilly Areas",
+        "section_id": "Chapter 2: Norms for Land, Location, and Site Requirements",
+        "clause_reference": "Annexure 3.1 (g) & (h)",
+        "edition_year": "2024-2027",
+        "page_number": 2,
+        "text": "In Hilly Areas, land can be spread across a maximum of 3 plots. Distance between any plots shall not exceed 2.0 km.",
+    },
+    {
+        "id": "Clause 1.4.2",
+        "clause_id": "Clause 1.4.2",
+        "title": "TER Processing Fee Schedule",
+        "section_id": "Chapter 1: Introduction and General Procedures",
+        "clause_reference": "Clause 1.4.2, Table 1.1",
+        "edition_year": "2024-2027",
+        "page_number": 1,
+        "text": "TER Charges for setting up a new Technical Institution is Rs. 10.00 Lakh for Private Registered Trusts under Table 1.1.",
+    },
+    {
+        "id": "Clause 1.5.3",
+        "clause_id": "Clause 1.5.3",
+        "title": "Minimum Operational Funds Requirement at Scrutiny",
+        "section_id": "Chapter 1: Introduction and General Procedures",
+        "clause_reference": "Clause 1.5.3, Table 1.2",
+        "edition_year": "2024-2027",
+        "page_number": 1,
+        "text": "Applicant Trust or Society must demonstrate minimum operational funds of at least Rs. 50.00 Lakh in FDR/Bank Deposits at Scrutiny.",
+    },
+    {
+        "id": "Annexure 5.2",
+        "clause_id": "Annexure 5.2",
+        "title": "Norms for Faculty Requirements and Cadre Ratio",
+        "section_id": "Chapter 3: Norms for Faculty Requirements and Cadre Ratios",
+        "clause_reference": "Annexure 5.2",
+        "edition_year": "2024-2027",
+        "page_number": 2,
+        "text": "Mandated Faculty-Student Ratio (SFR) is 1:20 and Cadre distribution is 1:2:6 (1 Professor : 2 Associate Professors : 6 Assistant Professors).",
+    },
+    {
+        "id": "Clause 6.14 (d) (iii)",
+        "clause_id": "Clause 6.14 (d) (iii)",
+        "title": "Ceiling on Adjunct Faculty and Professors of Practice",
+        "section_id": "Chapter 6: Faculty Appointments and Norms",
+        "clause_reference": "Chapter VI, Clause 6.14 (d) (iii)",
+        "edition_year": "2024-2027",
+        "page_number": 3,
+        "text": "Services of Adjunct Faculty or Professor of Practice may be availed up to a maximum limit of 15% of total required faculty strength.",
+    },
+    {
+        "id": "Clause 5.1 (b)",
+        "clause_id": "Clause 5.1 (b)",
+        "title": "Prohibited Programmes in Distance and Online Education",
+        "section_id": "Chapter 5: Open and Distance Learning (ODL) and Online Learning",
+        "clause_reference": "Chapter V, Clause 5.1 (b)",
+        "edition_year": "2024-2027",
+        "page_number": 4,
+        "text": "The Council shall NOT allow Open and Distance Learning (ODL) or Online Learning at Diploma / Degree / PG level in Engineering & Technology.",
+    },
+    {
+        "id": "Clause 5.3.3",
+        "clause_id": "Clause 5.3.3",
+        "title": "Minimum Dedicated Academic Staff at Headquarters",
+        "section_id": "Chapter 5: Open and Distance Learning (ODL) and Online Learning",
+        "clause_reference": "Chapter V, Clause 5.3.3, Table 5.1",
+        "edition_year": "2024-2027",
+        "page_number": 4,
+        "text": "Mandated academic staff per discipline for up to 5000 students: 1 Professor (Head), 1 Associate Professor, 2 Assistant Professors.",
+    },
+]
+
 STANDARD_EXCEPTIONS = [
     {
         "id": "exc_mega_city_land",
@@ -354,7 +486,7 @@ class Neo4jKnowledgeGraphSeeder:
         uri: str = NEO4J_URI,
         user: str = NEO4J_USER,
         password: str = NEO4J_PASSWORD,
-        database: str = NEO4J_DATABASE,
+        database: Optional[str] = NEO4J_DATABASE,
     ) -> None:
         self.uri = uri
         self.user = user
@@ -365,14 +497,14 @@ class Neo4jKnowledgeGraphSeeder:
 
     def connect(self) -> bool:
         """Establish or verify connectivity to Neo4j database."""
-        if self._connected is not None:
+        if self._connected is not None and self.driver is not None:
             return self._connected
 
         try:
             self.driver = GraphDatabase.driver(
                 self.uri,
                 auth=(self.user, self.password),
-                connection_timeout=1.0,
+                connection_timeout=15.0,
             )
             self.driver.verify_connectivity()
             logger.info("Successfully connected to Neo4j instance at %s", self.uri)
@@ -387,6 +519,12 @@ class Neo4jKnowledgeGraphSeeder:
             self.driver = None
         return self._connected
 
+    def get_session(self):
+        """Create a session using self.database if specified, else default database."""
+        if self.database:
+            return self.driver.session(database=self.database)
+        return self.driver.session()
+
     def close(self) -> None:
         """Close Neo4j driver connection."""
         if self.driver is not None:
@@ -398,19 +536,18 @@ class Neo4jKnowledgeGraphSeeder:
             self._connected = None
 
     def create_indexes(self) -> None:
-        """Create vector and full-text indexes in Neo4j (SHOW VECTOR INDEXES, SHOW FULLTEXT INDEXES)."""
+        """Create vector and full-text indexes in Neo4j."""
         if not self.connect() or not self.driver:
             logger.info("Neo4j offline. Skipping live index creation (in-memory index active).")
             return
 
-        with self.driver.session(database=self.database) as session:
+        with self.get_session() as session:
             try:
-                # 1. Check existing vector indexes
-                result = session.run("SHOW VECTOR INDEXES")
-                vector_indexes = [record["name"] for record in result]
-                logger.info("Current Neo4j vector indexes: %s", vector_indexes)
+                result = session.run("SHOW INDEXES").data()
+                existing_index_names = {rec.get("name") for rec in result}
+                logger.info("Existing Neo4j indexes: %s", existing_index_names)
 
-                if "clause_vector_index" not in vector_indexes:
+                if "clause_vector_index" not in existing_index_names:
                     logger.info("Creating vector index 'clause_vector_index' on :RegulatoryClause(embedding)...")
                     session.run(
                         """
@@ -425,12 +562,7 @@ class Neo4jKnowledgeGraphSeeder:
                     )
                     logger.info("Vector index 'clause_vector_index' created successfully.")
 
-                # 2. Check existing fulltext indexes
-                result = session.run("SHOW FULLTEXT INDEXES")
-                fulltext_indexes = [record["name"] for record in result]
-                logger.info("Current Neo4j fulltext indexes: %s", fulltext_indexes)
-
-                if "clause_fulltext_index" not in fulltext_indexes:
+                if "clause_fulltext_index" not in existing_index_names:
                     logger.info("Creating fulltext index 'clause_fulltext_index' on :RegulatoryClause...")
                     session.run(
                         """
@@ -462,6 +594,8 @@ class Neo4jKnowledgeGraphSeeder:
         counts = {
             "clauses": 0,
             "programmes": 0,
+            "levels": 0,
+            "ter_fees": 0,
             "application_types": 0,
             "requirements": 0,
             "location_types": 0,
@@ -472,16 +606,49 @@ class Neo4jKnowledgeGraphSeeder:
         # -------------------------------------------------------------------
         # 1. Seed Core Reference Entities (InMemory + Neo4j)
         # -------------------------------------------------------------------
+        # (:Programme)
         for prog in STANDARD_PROGRAMMES:
             in_memory_graph.add_node("Programme", prog["id"], prog)
             counts["programmes"] += 1
             if use_neo4j:
                 self._execute_cypher(
-                    "MERGE (p:Programme {id: $id}) SET p += $props",
+                    "MERGE (p:Programme {name: $name}) SET p.id = $id, p.degree = $degree",
                     id=prog["id"],
-                    props=prog,
+                    name=prog["name"],
+                    degree=prog.get("degree", ""),
                 )
 
+        # (:Level)
+        for lvl in STANDARD_LEVELS:
+            in_memory_graph.add_node("Level", lvl["id"], lvl)
+            counts["levels"] += 1
+            if use_neo4j:
+                self._execute_cypher(
+                    "MERGE (l:Level {name: $name}) SET l.id = $id, l.description = $desc",
+                    id=lvl["id"],
+                    name=lvl["name"],
+                    desc=lvl.get("description", ""),
+                )
+
+        # (:TERFee)
+        for fee in STANDARD_TER_FEES:
+            in_memory_graph.add_node("TERFee", fee["id"], fee)
+            counts["ter_fees"] += 1
+            if use_neo4j:
+                self._execute_cypher(
+                    """
+                    MERGE (t:TERFee {type: $type})
+                    SET t.id = $id, t.amount_lakhs = $amount_lakhs, t.title = $title, t.clause_ref = $clause_ref, t.description = $description
+                    """,
+                    id=fee["id"],
+                    type=fee["type"],
+                    amount_lakhs=fee["amount_lakhs"],
+                    title=fee["title"],
+                    clause_ref=fee["clause_ref"],
+                    description=fee["description"],
+                )
+
+        # (:ApplicationType)
         for app_type in STANDARD_APPLICATION_TYPES:
             in_memory_graph.add_node("ApplicationType", app_type["id"], app_type)
             counts["application_types"] += 1
@@ -492,6 +659,7 @@ class Neo4jKnowledgeGraphSeeder:
                     props=app_type,
                 )
 
+        # (:LocationType)
         for loc in STANDARD_LOCATION_TYPES:
             in_memory_graph.add_node("LocationType", loc["id"], loc)
             counts["location_types"] += 1
@@ -502,16 +670,40 @@ class Neo4jKnowledgeGraphSeeder:
                     props=loc,
                 )
 
+        # (:Requirement)
         for req in STANDARD_REQUIREMENTS:
             in_memory_graph.add_node("Requirement", req["id"], req)
             counts["requirements"] += 1
             if use_neo4j:
-                self._execute_cypher(
-                    "MERGE (r:Requirement {id: $id}) SET r += $props",
-                    id=req["id"],
-                    props=req,
-                )
+                # Merge on type if unique, or id
+                if "formula" in req:
+                    self._execute_cypher(
+                        """
+                        MERGE (r:Requirement {type: $type, formula: $formula})
+                        SET r += $props
+                        """,
+                        type=req["type"],
+                        formula=req["formula"],
+                        props=req,
+                    )
+                elif "ratio" in req:
+                    self._execute_cypher(
+                        """
+                        MERGE (r:Requirement {type: $type, ratio: $ratio})
+                        SET r += $props
+                        """,
+                        type=req["type"],
+                        ratio=req["ratio"],
+                        props=req,
+                    )
+                else:
+                    self._execute_cypher(
+                        "MERGE (r:Requirement {id: $id}) SET r += $props",
+                        id=req["id"],
+                        props=req,
+                    )
 
+        # (:Exception)
         for exc in STANDARD_EXCEPTIONS:
             in_memory_graph.add_node("Exception", exc["id"], exc)
             counts["exceptions"] += 1
@@ -523,13 +715,43 @@ class Neo4jKnowledgeGraphSeeder:
                 )
 
         # -------------------------------------------------------------------
-        # 2. Seed Regulatory Clause Nodes from Chunks
+        # 2. Seed Specific Regulatory Clause Nodes
+        # -------------------------------------------------------------------
+        for spec_clause in STANDARD_SPECIFIC_CLAUSES:
+            embedding = embedding_manager.embed_text(spec_clause["text"])
+            c_props = dict(spec_clause)
+            c_props["embedding"] = [float(x) for x in embedding]
+            in_memory_graph.add_node("RegulatoryClause", spec_clause["id"], c_props)
+            counts["clauses"] += 1
+            if use_neo4j:
+                self._execute_cypher(
+                    """
+                    MERGE (c:RegulatoryClause {id: $id})
+                    SET c.title = $title,
+                        c.clause_id = $clause_id,
+                        c.section_id = $section_id,
+                        c.clause_reference = $clause_reference,
+                        c.edition_year = $edition_year,
+                        c.text = $text,
+                        c.embedding = $embedding
+                    """,
+                    id=spec_clause["id"],
+                    title=spec_clause["title"],
+                    clause_id=spec_clause["clause_id"],
+                    section_id=spec_clause["section_id"],
+                    clause_reference=spec_clause["clause_reference"],
+                    edition_year=spec_clause["edition_year"],
+                    text=spec_clause["text"],
+                    embedding=c_props["embedding"],
+                )
+
+        # -------------------------------------------------------------------
+        # 3. Seed Ingested Chunks as RegulatoryClause Nodes
         # -------------------------------------------------------------------
         for chunk in chunks:
-            # Generate 1024-d BGE-M3 embedding for the chunk
             embedding = embedding_manager.embed_text(chunk.text)
-
             clause_props = {
+                "id": chunk.chunk_id,
                 "clause_id": chunk.chunk_id,
                 "title": chunk.title,
                 "edition_year": chunk.edition_year,
@@ -539,7 +761,7 @@ class Neo4jKnowledgeGraphSeeder:
                 "table_context": chunk.table_context or "",
                 "text": chunk.text,
                 "approx_tokens": chunk.approx_tokens,
-                "embedding": embedding,
+                "embedding": [float(x) for x in embedding],
             }
 
             in_memory_graph.add_node("RegulatoryClause", chunk.chunk_id, clause_props)
@@ -549,22 +771,41 @@ class Neo4jKnowledgeGraphSeeder:
                 self._execute_cypher(
                     """
                     MERGE (c:RegulatoryClause {id: $id})
-                    SET c += $props
+                    SET c.clause_id = $clause_id,
+                        c.title = $title,
+                        c.edition_year = $edition_year,
+                        c.section_id = $section_id,
+                        c.clause_reference = $clause_reference,
+                        c.page_number = $page_number,
+                        c.table_context = $table_context,
+                        c.text = $text,
+                        c.approx_tokens = $approx_tokens,
+                        c.embedding = $embedding
                     """,
                     id=chunk.chunk_id,
-                    props=clause_props,
+                    clause_id=chunk.chunk_id,
+                    title=chunk.title,
+                    edition_year=chunk.edition_year,
+                    section_id=chunk.section_id,
+                    clause_reference=chunk.clause_reference,
+                    page_number=chunk.page_number,
+                    table_context=clause_props["table_context"],
+                    text=chunk.text,
+                    approx_tokens=chunk.approx_tokens,
+                    embedding=clause_props["embedding"],
                 )
 
         # -------------------------------------------------------------------
-        # 3. Build Directed Relationships
+        # 4. Build Directed Relationships
         # -------------------------------------------------------------------
-        # (:Programme)-[:MANDATES]->(:Requirement)
+        # A. (:Programme)-[:MANDATES]->(:Requirement)
         prog_mandates = [
+            ("prog_eng", "req_classrooms_formula"),
+            ("prog_eng", "req_sfr_1_20"),
             ("prog_eng", "req_land_eng_rural"),
             ("prog_eng", "req_land_eng_urban"),
             ("prog_eng", "req_land_eng_mega"),
             ("prog_eng", "req_land_clu"),
-            ("prog_eng", "req_fsr_ug_eng"),
             ("prog_eng", "req_cadre_ratio"),
             ("prog_eng", "req_faculty_regular_pct"),
             ("prog_eng", "req_builtup_area"),
@@ -580,72 +821,124 @@ class Neo4jKnowledgeGraphSeeder:
             self._link_entities("Programme", prog_id, "MANDATES", "Requirement", req_id)
             counts["relationships"] += 1
 
-        # (:RegulatoryClause)-[:HAS_EXCEPTION]->(:Exception)
+        # Direct user-requested MANDATES relationships in Neo4j
+        if use_neo4j:
+            self._execute_cypher(
+                """
+                MATCH (p:Programme {name: 'Engineering and Technology'})
+                MATCH (r:Requirement {type: 'ClassroomsFormula', formula: 'Divisions * Duration * 0.5'})
+                MERGE (p)-[:MANDATES]->(r)
+                """
+            )
+            self._execute_cypher(
+                """
+                MATCH (p:Programme {name: 'Engineering and Technology'})
+                MATCH (r:Requirement {type: 'SFR', ratio: '1:20'})
+                MERGE (p)-[:MANDATES]->(r)
+                """
+            )
+
+        # B. (:Programme)-[:GOVERNED_BY]->(:RegulatoryClause)
+        governed_by_pairs = [
+            ("prog_eng", "Annexure 3.2.1"),
+            ("prog_eng", "Annexure 3.1"),
+            ("prog_eng", "Clause 1.4.2"),
+            ("prog_eng", "Annexure 5.2"),
+            ("prog_eng", "Clause 6.14 (d) (iii)"),
+            ("prog_eng", "Clause 5.1 (b)"),
+            ("prog_eng", "aph_2024_2027_c001"),
+            ("prog_eng", "aph_2024_2027_c002"),
+            ("prog_eng", "aph_2024_2027_c003"),
+            ("prog_eng", "aph_2024_2027_c004"),
+            ("prog_mgmt", "Clause 1.5.3"),
+            ("prog_mgmt", "Clause 5.3.3"),
+        ]
+        for prog_id, clause_id in governed_by_pairs:
+            self._link_entities("Programme", prog_id, "GOVERNED_BY", "RegulatoryClause", clause_id)
+            counts["relationships"] += 1
+
+        if use_neo4j:
+            self._execute_cypher(
+                """
+                MATCH (p:Programme {name: 'Engineering and Technology'})
+                MATCH (c:RegulatoryClause {id: 'Annexure 3.2.1', title: 'Instructional Area'})
+                MERGE (p)-[:GOVERNED_BY]->(c)
+                """
+            )
+
+        # C. (:Programme)-[:OFFERS_LEVEL]->(:Level)
+        self._link_entities("Programme", "prog_eng", "OFFERS_LEVEL", "Level", "level_ug")
+        counts["relationships"] += 1
+        if use_neo4j:
+            self._execute_cypher(
+                """
+                MATCH (p:Programme {name: 'Engineering and Technology'})
+                MATCH (l:Level {name: 'Under Graduate'})
+                MERGE (p)-[:OFFERS_LEVEL]->(l)
+                """
+            )
+
+        # D. (:Programme)-[:REQUIRES_FEE]->(:TERFee)
+        self._link_entities("Programme", "prog_eng", "REQUIRES_FEE", "TERFee", "fee_ter_new_private_trust")
+        counts["relationships"] += 1
+        if use_neo4j:
+            self._execute_cypher(
+                """
+                MATCH (p:Programme {name: 'Engineering and Technology'})
+                MATCH (t:TERFee {type: 'New Private Trust'})
+                MERGE (p)-[:REQUIRES_FEE]->(t)
+                """
+            )
+
+        # E. (:RegulatoryClause)-[:MANDATES]->(:Requirement) / (:RegulatoryClause)-[:SPECIFIES]->(:Requirement)
+        clause_req_pairs = [
+            ("Annexure 3.2.1", "req_classrooms_formula"),
+            ("Annexure 5.2", "req_sfr_1_20"),
+            ("Annexure 5.2", "req_cadre_ratio"),
+            ("Annexure 3.1", "req_land_eng_rural"),
+            ("Clause 1.4.2", "req_forensics_integrity"),
+            ("Clause 1.5.3", "req_pki_signature"),
+            ("aph_2024_2027_c001", "req_land_eng_rural"),
+            ("aph_2024_2027_c002", "req_land_eng_urban"),
+            ("aph_2024_2027_c003", "req_classrooms_formula"),
+            ("aph_2024_2027_c004", "req_builtup_area"),
+        ]
+        for cid, rid in clause_req_pairs:
+            self._link_entities("RegulatoryClause", cid, "SPECIFIES", "Requirement", rid)
+            counts["relationships"] += 1
+
+        if use_neo4j:
+            self._execute_cypher(
+                """
+                MATCH (c:RegulatoryClause {id: 'Annexure 3.2.1'})
+                MATCH (r:Requirement {type: 'ClassroomsFormula'})
+                MERGE (c)-[:SPECIFIES]->(r)
+                """
+            )
+
+        # F. (:RegulatoryClause)-[:HAS_EXCEPTION]->(:Exception)
         clause_exceptions = [
-            ("Clause 2.1.4", "exc_mega_city_land"),
-            ("Clause 3.2.5", "exc_prof_practice"),
-            ("Clause 2.1.2", "exc_land_two_plots"),
+            ("aph_2024_2027_c002", "exc_mega_city_land"),
+            ("aph_2024_2027_c002", "exc_land_two_plots"),
+            ("aph_2024_2027_c003", "exc_prof_practice"),
+            ("Annexure 3.1", "exc_land_two_plots"),
+            ("Clause 6.14 (d) (iii)", "exc_prof_practice"),
         ]
-        for clause_ref, exc_id in clause_exceptions:
-            clause_nodes = in_memory_graph.find_nodes(
-                "RegulatoryClause",
-                lambda p, c=clause_ref: c.lower() in p.get("text", "").lower()
-                or c.lower() in p.get("clause_reference", "").lower(),
-            )
-            for cnode in clause_nodes:
-                self._link_entities("RegulatoryClause", cnode["id"], "HAS_EXCEPTION", "Exception", exc_id)
-                counts["relationships"] += 1
+        for cid, exc_id in clause_exceptions:
+            self._link_entities("RegulatoryClause", cid, "HAS_EXCEPTION", "Exception", exc_id)
+            counts["relationships"] += 1
 
-        # (:RegulatoryClause)-[:APPLIES_TO]->(:LocationType)
+        # G. (:RegulatoryClause)-[:APPLIES_TO]->(:LocationType)
         clause_locations = [
-            ("Section 2.1", "loc_rural"),
-            ("Section 2.1", "loc_urban"),
-            ("Section 2.1", "loc_mega"),
-            ("Clause 2.1.4", "loc_mega"),
+            ("aph_2024_2027_c001", "loc_rural"),
+            ("aph_2024_2027_c001", "loc_urban"),
+            ("aph_2024_2027_c002", "loc_hilly"),
+            ("aph_2024_2027_c002", "loc_mega"),
+            ("Annexure 3.1", "loc_hilly"),
         ]
-        for sec_ref, loc_id in clause_locations:
-            matching_clauses = in_memory_graph.find_nodes(
-                "RegulatoryClause",
-                lambda p, s=sec_ref: s.lower() in p.get("section_id", "").lower()
-                or s.lower() in p.get("text", "").lower(),
-            )
-            for cnode in matching_clauses:
-                self._link_entities("RegulatoryClause", cnode["id"], "APPLIES_TO", "LocationType", loc_id)
-                counts["relationships"] += 1
-
-        # (:RegulatoryClause)-[:SPECIFIES]->(:Requirement)
-        clause_req_links = [
-            ("Section 2.1", "req_land_eng_rural"),
-            ("Section 2.1", "req_land_eng_urban"),
-            ("Section 2.1", "req_land_clu"),
-            ("Section 3.2", "req_fsr_ug_eng"),
-            ("Section 3.2", "req_cadre_ratio"),
-            ("Section 3.2", "req_faculty_regular_pct"),
-            ("Section 4.1", "req_builtup_area"),
-            ("Section 5.1", "req_statutory_fire_noc"),
-            ("Section 5.2", "req_forensics_integrity"),
-            ("Section 5.2", "req_pki_signature"),
-        ]
-        for sec_ref, req_id in clause_req_links:
-            matching_clauses = in_memory_graph.find_nodes(
-                "RegulatoryClause",
-                lambda p, s=sec_ref: s.lower() in p.get("section_id", "").lower()
-                or s.lower() in p.get("title", "").lower()
-                or s.lower() in p.get("text", "").lower(),
-            )
-            for cnode in matching_clauses:
-                self._link_entities("RegulatoryClause", cnode["id"], "SPECIFIES", "Requirement", req_id)
-                counts["relationships"] += 1
-
-        # (:RegulatoryClause)-[:COVERS_PROGRAMME]->(:Programme)
-        for cnode in in_memory_graph.find_nodes("RegulatoryClause"):
-            text_lower = cnode.get("text", "").lower()
-            if "engineering" in text_lower or "technology" in text_lower:
-                self._link_entities("RegulatoryClause", cnode["id"], "COVERS_PROGRAMME", "Programme", "prog_eng")
-                counts["relationships"] += 1
-            if "management" in text_lower or "mba" in text_lower:
-                self._link_entities("RegulatoryClause", cnode["id"], "COVERS_PROGRAMME", "Programme", "prog_mgmt")
-                counts["relationships"] += 1
+        for cid, loc_id in clause_locations:
+            self._link_entities("RegulatoryClause", cid, "APPLIES_TO", "LocationType", loc_id)
+            counts["relationships"] += 1
 
         in_memory_graph.is_seeded = True
         logger.info("Graph seeding complete: %s", counts)
@@ -664,8 +957,8 @@ class Neo4jKnowledgeGraphSeeder:
 
         if self._connected and self.driver:
             cypher = f"""
-            MATCH (a:{from_label} {{id: $from_id}})
-            MATCH (b:{to_label} {{id: $to_id}})
+            MATCH (a:{from_label}) WHERE a.id = $from_id OR a.clause_id = $from_id OR a.name = $from_id
+            MATCH (b:{to_label}) WHERE b.id = $to_id OR b.clause_id = $to_id OR b.name = $to_id
             MERGE (a)-[r:{rel}]->(b)
             """
             self._execute_cypher(cypher, from_id=from_id, to_id=to_id)
@@ -675,7 +968,7 @@ class Neo4jKnowledgeGraphSeeder:
         if not self._connected or not self.driver:
             return []
         try:
-            with self.driver.session(database=self.database) as session:
+            with self.get_session() as session:
                 result = session.run(query, **params)
                 return [record.data() for record in result]
         except Exception as exc:
@@ -693,4 +986,53 @@ def seed_graph_database() -> Dict[str, int]:
 
 
 if __name__ == "__main__":
-    seed_graph_database()
+    print("=" * 70)
+    print("AICTE Regulatory Knowledge Graph Seeding (Layer 4 Task 2)")
+    print("=" * 70)
+
+    counts = seed_graph_database()
+    print(f"\n[Seeding Completed] Node & Relationship counts: {counts}")
+
+    if graph_seeder.connect() and graph_seeder.driver:
+        print("\n" + "=" * 70)
+        print("Executing Neo4j Aura Remote Verification Queries:")
+        print("=" * 70)
+
+        with graph_seeder.get_session() as session:
+            # 1. Total nodes count
+            node_count = session.run("MATCH (n) RETURN count(n) AS cnt").single()["cnt"]
+            print(f"\n>> MATCH (n) RETURN count(n) => {node_count} nodes")
+
+            # 2. Total relationships count
+            rel_count = session.run("MATCH ()-[r]->() RETURN count(r) AS cnt").single()["cnt"]
+            print(f">> MATCH ()-[r]->() RETURN count(r) => {rel_count} relationships")
+
+            # 3. Verify specific requested nodes
+            print("\n>> Verifying Specific Requested Nodes:")
+            queries = [
+                ("Programme", "MATCH (p:Programme {name: 'Engineering and Technology'}) RETURN p.name AS name, p.id AS id"),
+                ("Level", "MATCH (l:Level {name: 'Under Graduate'}) RETURN l.name AS name, l.id AS id"),
+                ("RegulatoryClause", "MATCH (c:RegulatoryClause {id: 'Annexure 3.2.1', title: 'Instructional Area'}) RETURN c.id AS id, c.title AS title"),
+                ("Requirement (Formula)", "MATCH (r:Requirement {type: 'ClassroomsFormula', formula: 'Divisions * Duration * 0.5'}) RETURN r.type AS type, r.formula AS formula"),
+                ("Requirement (SFR)", "MATCH (r:Requirement {type: 'SFR', ratio: '1:20'}) RETURN r.type AS type, r.ratio AS ratio"),
+                ("TERFee", "MATCH (t:TERFee {type: 'New Private Trust', amount_lakhs: 10.0}) RETURN t.type AS type, t.amount_lakhs AS amount_lakhs"),
+            ]
+            for label, q in queries:
+                records = session.run(q).data()
+                print(f"  [NODE: {label}] -> {records}")
+
+            # 4. Verify specific requested relationships
+            print("\n>> Verifying Specific Requested Directed Relationships:")
+            rel_queries = [
+                ("(:Programme)-[:MANDATES]->(:Requirement)", "MATCH (p:Programme {name: 'Engineering and Technology'})-[r:MANDATES]->(req:Requirement) RETURN p.name AS programme, type(r) AS rel, req.type AS req_type, req.formula AS formula, req.ratio AS ratio"),
+                ("(:Programme)-[:GOVERNED_BY]->(:RegulatoryClause)", "MATCH (p:Programme {name: 'Engineering and Technology'})-[r:GOVERNED_BY]->(c:RegulatoryClause {id: 'Annexure 3.2.1'}) RETURN p.name AS programme, type(r) AS rel, c.id AS clause_id, c.title AS title"),
+            ]
+            for desc, q in rel_queries:
+                records = session.run(q).data()
+                print(f"  [RELATIONSHIP: {desc}]")
+                for r in records:
+                    print(f"    {r}")
+
+        graph_seeder.close()
+    else:
+        print("[WARNING] Could not connect to remote Neo4j Aura.")
