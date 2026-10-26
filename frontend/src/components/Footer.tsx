@@ -1,128 +1,56 @@
 import React from 'react';
-import { Mail, Phone, MapPin, ExternalLink, ShieldCheck } from 'lucide-react';
+import { ArrowUpRight, ShieldCheck } from 'lucide-react';
 
-export const Footer: React.FC = () => {
-  return (
-    <footer className="relative bg-[#2B1609] text-[#F5E6C8] pt-14 pb-8 overflow-hidden border-t-2 border-[#D4AF37]">
-      {/* Torn Paper Top Border Accent */}
-      <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#4A1504] via-[#D4AF37] to-[#4A1504]" />
+const footerLinks = [
+  { href: '#home', label: 'Home' },
+  { href: '#features', label: 'Features' },
+  { href: '#audit', label: 'Audit workspace' },
+  { href: '#about', label: 'About SATYA' },
+  { href: '#faq', label: 'FAQ' },
+];
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-          {/* Col 1: AICTE Apex Authority */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🏛️</span>
-              <div>
-                <div className="font-cinzel text-base font-bold text-[#FFF3B0]">
-                  AICTE PS PORTAL
-                </div>
-                <div className="text-[10px] text-[#D4AF37] font-vedic">
-                  अखिल भारतीय तकनीकी शिक्षा परिषद
-                </div>
-              </div>
-            </div>
+export const Footer: React.FC = () => (
+  <footer className="relative mt-16 overflow-hidden border-t border-[#D4AF37]/50 bg-[#2B1609] text-[#F5E6C8]">
+    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4A1504] via-[#D4AF37] to-[#4A1504]" />
 
-            <p className="text-xs text-[#F5E6C8]/75 leading-relaxed">
-              Statutory body and apex national council for technical education under the Department of Higher Education, Ministry of Education, Government of India.
-            </p>
-
-            <div className="flex items-center gap-2 text-xs text-[#D4AF37]">
-              <ShieldCheck className="w-4 h-4 text-[#D4AF37]" />
-              <span className="font-semibold">APH 2024–2027 Regulatory Compliant</span>
-            </div>
-          </div>
-
-          {/* Col 2: Headquarters & Contact */}
-          <div className="space-y-3">
-            <h4 className="font-cinzel text-xs font-bold uppercase tracking-wider text-[#D4AF37]">
-              National Headquarters
-            </h4>
-            <div className="space-y-2 text-xs text-[#F5E6C8]/80">
-              <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-[#C59B27] flex-shrink-0 mt-0.5" />
-                <span>
-                  Nelson Mandela Marg, Vasant Kunj, New Delhi, Delhi 110070, India
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-[#C59B27] flex-shrink-0" />
-                <span>+91 11 29581000 / 26131576</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-[#C59B27] flex-shrink-0" />
-                <span>problem-provider@aicte-india.org</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Col 3: Key Portals & Initiatives */}
-          <div className="space-y-3">
-            <h4 className="font-cinzel text-xs font-bold uppercase tracking-wider text-[#D4AF37]">
-              Connected Portals
-            </h4>
-            <ul className="space-y-1.5 text-xs text-[#F5E6C8]/75">
-              <li>
-                <a href="https://www.aicte-india.org" target="_blank" rel="noreferrer" className="hover:text-[#FFF3B0] flex items-center gap-1.5">
-                  <ExternalLink className="w-3 h-3 text-[#D4AF37]" />
-                  Official AICTE India Main Portal
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-[#FFF3B0] flex items-center gap-1.5">
-                  <ExternalLink className="w-3 h-3 text-[#D4AF37]" />
-                  Smart India Hackathon (SIH) Repository
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-[#FFF3B0] flex items-center gap-1.5">
-                  <ExternalLink className="w-3 h-3 text-[#D4AF37]" />
-                  AICTE NEAT (National Tech Alliance)
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-[#FFF3B0] flex items-center gap-1.5">
-                  <ExternalLink className="w-3 h-3 text-[#D4AF37]" />
-                  Indian Knowledge Systems (IKS) Division
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-[#FFF3B0] flex items-center gap-1.5">
-                  <ExternalLink className="w-3 h-3 text-[#D4AF37]" />
-                  DigiLocker National Academic Depository
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col 4: Vedic Geometric Heritage */}
-          <div className="space-y-3">
-            <h4 className="font-cinzel text-xs font-bold uppercase tracking-wider text-[#D4AF37]">
-              Vedic Scientific Heritage
-            </h4>
-            <p className="text-xs text-[#F5E6C8]/70 leading-relaxed italic">
-              "॥ दीर्घचतुरस्रस्याक्ष्णया रज्जुः पार्श्वमानी तिर्यग् मानी च यत् पृथग् भूते कुरुतस्तदुभयं करोति ॥"
-            </p>
-            <p className="text-[11px] text-[#D4AF37] font-semibold">
-              Celebrating Maharishi Baudhayana (800 BCE – 740 BCE) & India's timeless architectural and mathematical legacy.
-            </p>
-          </div>
+    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-start">
+        <div className="max-w-xl space-y-4">
+          <a href="#home" className="inline-flex items-center gap-3 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#D4AF37] bg-[#4A1504]">
+              <ShieldCheck className="h-6 w-6 text-[#D4AF37]" />
+            </span>
+            <span>
+              <span className="block font-cinzel text-lg font-bold text-[#FFF3B0]">SATYA</span>
+              <span className="block text-[10px] text-[#F5E6C8]/70">Smart Audit and Transparent Yield Authentication</span>
+            </span>
+          </a>
+          <p className="text-sm leading-relaxed text-[#F5E6C8]/75">
+            A prototype for reviewing technical education documents, surfacing evidence gaps, and organizing audit signals for human review.
+          </p>
+          <span className="inline-flex rounded-full border border-[#D4AF37]/40 bg-white/5 px-3 py-1 text-[10px] font-semibold tracking-wide text-[#F3D778]">
+            AICTE Problem Statement SH26261 · Demonstration prototype
+          </span>
         </div>
 
-        {/* Bottom Copyright Row */}
-        <div className="pt-6 border-t border-[#D4AF37]/20 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#F5E6C8]/60 gap-3">
-          <div>
-            © {new Date().getFullYear()} All India Council for Technical Education (AICTE). All Rights Reserved.
-          </div>
-          <div className="flex gap-4">
-            <a href="#" className="hover:text-[#FFF3B0]">Privacy Policy</a>
-            <span>•</span>
-            <a href="#" className="hover:text-[#FFF3B0]">Terms of Challenge Submission</a>
-            <span>•</span>
-            <a href="#" className="hover:text-[#FFF3B0]">RTI Act AICTE Cell</a>
-          </div>
-        </div>
+        <nav aria-label="Footer navigation" className="md:justify-self-end">
+          <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37]">Explore SATYA</h2>
+          <ul className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-3 md:grid-cols-2">
+            {footerLinks.map((link) => (
+              <li key={link.href}>
+                <a href={link.href} className="inline-flex items-center gap-1 text-[#F5E6C8]/80 transition-colors hover:text-[#FFF3B0]">
+                  {link.label}<ArrowUpRight className="h-3 w-3 opacity-60" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
-    </footer>
-  );
-};
+
+      <div className="mt-8 flex flex-col gap-3 border-t border-[#D4AF37]/20 pt-5 text-[11px] text-[#F5E6C8]/60 sm:flex-row sm:items-center sm:justify-between">
+        <p>© {new Date().getFullYear()} SATYA prototype. Built for project demonstration.</p>
+        <p className="max-w-2xl sm:text-right">Not an official AICTE service. Demo findings are illustrative and do not constitute regulatory decisions or issuer verification.</p>
+      </div>
+    </div>
+  </footer>
+);

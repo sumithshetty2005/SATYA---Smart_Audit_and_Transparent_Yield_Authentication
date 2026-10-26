@@ -7,18 +7,7 @@ SATYA is an intelligent, multi-layered regulatory auditing and document integrit
 
 ## 🏛️ Architecture Overview
 
-The system operates across **5 progressive verification layers**:
-
-```mermaid
-flowchart TD
-    Doc["Uploaded Institutional Document / PDF"] --> L1["Layer 1: LayoutLMv3 Ingestion & Extraction"]
-    L1 --> L2["Layer 2: Visual & Structural Forensics"]
-    L2 --> L3["Layer 3: Cryptographic PKI & QR Verification"]
-    L3 --> L4["Layer 4: Agentic GraphRAG & Regulatory Engine"]
-    L4 --> L5["Layer 5: Analytics, Audit Reporting & Dashboard Integration"]
-    L5 --> Cert["Official AICTE Compliance Clearance Certificate (PDF/JSON)"]
-    L5 --> Dash["Executive Anomaly & Health Index Dashboard"]
-```
+See the [SATYA architecture diagram](docs/architecture.md) for the current application components, audit flow, data stores, and prototype/integration boundaries. The API exposes layered capabilities, but a document does not automatically pass through every layer in one request.
 
 ### Layer 1: Document Ingestion & Layout Analysis (`app/ingestion/`)
 - Powered by `microsoft/layoutlmv3-base`.

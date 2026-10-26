@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  FileText,
   ShieldCheck,
   AlertTriangle,
   Fingerprint,
@@ -11,7 +10,6 @@ import {
   Printer,
   RotateCcw,
   Award,
-  Scale,
 } from 'lucide-react';
 import { DecisionSupportMatrix } from './DecisionSupportMatrix';
 import { Layer3SourceVerification } from './Layer3SourceVerification';
@@ -94,28 +92,8 @@ export const DocumentFindingsView: React.FC<Props> = ({
   onReset,
   onOpenReportModal,
 }) => {
-  const [activeTab, setActiveTab] = useState<'decision' | 'summary' | 'layer1' | 'layer2' | 'layer3' | 'layer4' | 'layer5' | 'layer6'>('decision');
+  const [activeTab, setActiveTab] = useState<'summary' | 'layer2' | 'layer3' | 'layer4' | 'layer5' | 'layer6'>('summary');
   const [elaSliderPos, setElaSliderPos] = useState<number>(50);
-  const [hoveredToken, setHoveredToken] = useState<any>(null);
-
-  const getLabelColor = (label: string) => {
-    switch (label) {
-      case 'HEADER':
-        return 'border-purple-500 bg-purple-500/15 text-purple-900';
-      case 'KEY':
-        return 'border-blue-500 bg-blue-500/15 text-blue-900';
-      case 'VALUE':
-        return 'border-amber-600 bg-amber-500/15 text-amber-900';
-      case 'TABLE_CELL':
-        return 'border-emerald-500 bg-emerald-500/15 text-emerald-900';
-      case 'SEAL':
-        return 'border-red-500 bg-red-500/20 text-red-900 font-bold';
-      case 'SIGNATURE':
-        return 'border-cyan-600 bg-cyan-500/15 text-cyan-900';
-      default:
-        return 'border-gray-500 bg-gray-500/10 text-gray-800';
-    }
-  };
 
   return (
     <div className="space-y-6 font-sans-modern scroll-mt-6" id="findings-section">
@@ -151,7 +129,7 @@ export const DocumentFindingsView: React.FC<Props> = ({
 
             <p className="text-xs text-[#2B1609]/75 font-serif max-w-2xl">
               Evaluated under AICTE Approval Process Handbook (APH 2024–2027 Gazette Edition). Complete cross-layer 
-              findings from LayoutLMv3 token extraction to cryptographic Merkle proof seals.
+              Findings across document consistency, visual forensics, source checks, regulatory rules, and infrastructure evidence.
             </p>
           </div>
 
@@ -200,15 +178,7 @@ export const DocumentFindingsView: React.FC<Props> = ({
         {/* Navigation Tabs */}
         <div className="mt-5 pt-4 border-t border-[#D4AF37]/30 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {[
-            {
-              id: 'decision',
-              label: "Decision Support: What's Right vs Wrong",
-              icon: <Scale className="w-4 h-4" />,
-              badge: result.verdict === 'PASSED' ? '0 Deficiencies' : `${result.layer4.citations.length || 3} Alert(s)`,
-              badgeColor: result.verdict === 'PASSED' ? 'bg-emerald-600' : 'bg-red-600',
-            },
-            { id: 'summary', label: 'Executive Scorecard', icon: <Award className="w-4 h-4" /> },
-            { id: 'layer1', label: '1. LayoutLMv3 Tokens', icon: <FileText className="w-4 h-4" /> },
+            { id: 'summary', label: 'Execution Dashboard', icon: <Award className="w-4 h-4" /> },
             {
               id: 'layer2',
               label: '2. ELA Visual Forensics',
@@ -257,15 +227,7 @@ export const DocumentFindingsView: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Tab Content: Decision Matrix - What is Right vs What is Wrong */}
-      {activeTab === 'decision' && (
-        <DecisionSupportMatrix
-          result={result}
-          onOpenReportModal={onOpenReportModal}
-        />
-      )}
-
-      {/* Tab Content: Executive Scorecard */}
+      {/* Tab Content: Execution Dashboard */}
       {activeTab === 'summary' && (
         <div className="space-y-6">
           {/* Integrated Decision Support Matrix at Top */}
@@ -376,99 +338,6 @@ export const DocumentFindingsView: React.FC<Props> = ({
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Tab Content: Layer 1 Tokens */}
-      {activeTab === 'layer1' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 space-y-3">
-            <div className="relative w-full aspect-[1/1.3] bg-[#FAF4E8] rounded-2xl border-2 border-[#D4AF37]/60 shadow-xl overflow-hidden p-6 select-none font-serif">
-              <div
-                className="absolute inset-0 pointer-events-none opacity-5 bg-center bg-no-repeat bg-contain"
-                style={{ backgroundImage: `url('/assets/mandala.png')` }}
-              />
-
-              <div className="text-center pb-3 mb-3 border-b border-[#2B1609]/20 relative z-10 text-[10px] font-mono text-[#4A1504]">
-                [DOCUMENT CANVAS: {result.fileName} • {result.layer1.tokensCount} EXTRACTED TOKENS]
-              </div>
-
-              <div className="relative w-full h-[85%]">
-                {result.layer1.tokens.map((token) => {
-                  const [ymin, xmin, ymax, xmax] = token.bbox;
-                  const isHovered = hoveredToken?.id === token.id;
-                  const top = `${(ymin / 1000) * 100}%`;
-                  const left = `${(xmin / 1000) * 100}%`;
-                  const height = `${((ymax - ymin) / 1000) * 100}%`;
-                  const width = `${((xmax - xmin) / 1000) * 100}%`;
-
-                  return (
-                    <div
-                      key={token.id}
-                      onMouseEnter={() => setHoveredToken(token)}
-                      onMouseLeave={() => setHoveredToken(null)}
-                      style={{ top, left, height, width }}
-                      className={`absolute rounded border cursor-pointer transition-all duration-150 flex items-center px-2 text-xs ${getLabelColor(
-                        token.label
-                      )} ${
-                        isHovered ? 'ring-2 ring-[#4A1504] shadow-lg z-20 scale-[1.01]' : 'z-10'
-                      } ${token.highlight ? 'animate-pulse' : ''}`}
-                    >
-                      <span className="truncate text-[11px] font-mono font-medium">{token.text}</span>
-                      <span className="ml-auto text-[8px] font-mono opacity-80 pl-1 shrink-0">
-                        {(token.confidence * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-4 space-y-4">
-            <div className="p-4 rounded-2xl bg-white/70 border border-[#D4AF37]/40 shadow-xs space-y-3">
-              <h4 className="font-cinzel font-bold text-xs uppercase tracking-wider text-[#4A1504]">
-                Token Inspector
-              </h4>
-              {hoveredToken ? (
-                <div className="space-y-2 text-xs">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#4A1504] text-[#F5E6C8]">
-                    {hoveredToken.label}
-                  </span>
-                  <div className="font-serif font-bold text-sm text-[#2B1609]">"{hoveredToken.text}"</div>
-                  <div className="font-mono text-[10px] text-[#2B1609]/70">
-                    BBox: [{hoveredToken.bbox.join(', ')}] • Conf: {(hoveredToken.confidence * 100).toFixed(1)}%
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-[#2B1609]/60 italic">Hover over any token in the document canvas to view normalized 2D coordinates and OCR confidence.</p>
-              )}
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white/70 border border-[#D4AF37]/40 shadow-xs space-y-2 text-xs">
-              <h4 className="font-cinzel font-bold text-xs uppercase tracking-wider text-[#4A1504]">
-                Pydantic Payload Summary
-              </h4>
-              <div className="space-y-1.5 text-[11px]">
-                <div className="flex justify-between border-b border-[#D4AF37]/20 pb-1">
-                  <span>Land Area:</span>
-                  <span className="font-bold text-[#4A1504]">{result.layer1.payload.landAreaAcres} Acres</span>
-                </div>
-                <div className="flex justify-between border-b border-[#D4AF37]/20 pb-1">
-                  <span>Built-Up Area:</span>
-                  <span className="font-bold">{result.layer1.payload.builtUpAreaSqm.toLocaleString()} m²</span>
-                </div>
-                <div className="flex justify-between border-b border-[#D4AF37]/20 pb-1">
-                  <span>Faculty Cadre:</span>
-                  <span className="font-bold">{result.layer1.payload.cadre.ratio}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Student-Faculty Ratio:</span>
-                  <span className="font-bold">{result.layer1.payload.studentFacultyRatio}</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 

@@ -5,7 +5,6 @@ import { DocumentFindingsView, type ScrutinyResult } from './components/Document
 import { OfficialInspectionReportModal } from './components/OfficialInspectionReportModal';
 import { SpecificationsModal } from './components/SpecificationsModal';
 import { Footer } from './components/Footer';
-import { PrototypePacketReview, type PrototypePacketReviewData } from './components/PrototypePacketReview';
 import {
   UploadCloud,
   FileCheck2,
@@ -30,8 +29,6 @@ export function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStep, setAnalysisStep] = useState<number>(0);
   const [scrutinyResult, setScrutinyResult] = useState<ScrutinyResult | null>(null);
-  const [prototypeReview, setPrototypeReview] = useState<PrototypePacketReviewData | null>(null);
-  const [reviewError, setReviewError] = useState<string | null>(null);
 
   // Modals
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -71,8 +68,6 @@ export function App() {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
       setScrutinyResult(null);
-      setPrototypeReview(null);
-      setReviewError(null);
     }
   };
 
@@ -91,44 +86,10 @@ export function App() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       setSelectedFile(e.dataTransfer.files[0]);
       setScrutinyResult(null);
-      setPrototypeReview(null);
-      setReviewError(null);
-    }
-  };
-
-  const reviewUploadedPacket = async () => {
-    if (!selectedFile) {
-      setReviewError('Choose the synthetic packet PDF before starting the prototype review.');
-      return;
-    }
-    setIsAnalyzing(true);
-    setAnalysisStep(0);
-    setReviewError(null);
-    setPrototypeReview(null);
-    setScrutinyResult(null);
-    const progressTimer = window.setInterval(() => {
-      setAnalysisStep((step) => Math.min(step + 1, steps.length - 1));
-    }, 450);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      const response = await fetch('/api/v1/prototype/review-packet', { method: 'POST', body: formData });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.detail || 'The prototype review could not read this PDF.');
-      setPrototypeReview(payload as PrototypePacketReviewData);
-      window.setTimeout(() => findingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-    } catch (error) {
-      setReviewError(error instanceof Error ? error.message : 'Could not reach the SATYA prototype review service.');
-    } finally {
-      window.clearInterval(progressTimer);
-      setIsAnalyzing(false);
     }
   };
 
   const executeScrutinyAnalysis = (isTamperedDemo: boolean = false) => {
-    setPrototypeReview(null);
-    setReviewError(null);
     setIsAnalyzing(true);
     setAnalysisStep(0);
 
@@ -684,7 +645,7 @@ export function App() {
                       Drag &amp; drop your application PDF here, or <span className="underline decoration-[#D4AF37]">browse</span>
                     </div>
                     <p className="text-xs text-[#2B1609]/65">
-                  Prototype review supports the supplied synthetic test packet PDF. Other PDFs are inventoried without generated findings.
+                  Upload an institutional application PDF to view the prototype scrutiny findings.
                     </p>
                   </div>
                 )}
@@ -715,12 +676,12 @@ export function App() {
                 </div>
 
                 <button
-                  onClick={reviewUploadedPacket}
-                  disabled={isAnalyzing || !selectedFile}
+                  onClick={() => executeScrutinyAnalysis(false)}
+                  disabled={isAnalyzing}
                   className="w-full md:w-auto px-6 py-3 bg-[#4A1504] hover:bg-[#2B1609] text-[#F5E6C8] rounded-xl text-xs font-cinzel font-bold tracking-wider shadow-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Cpu className="w-4 h-4 text-[#D4AF37]" />
-                  <span>{isAnalyzing ? 'Reviewing synthetic packet...' : 'Review uploaded PDF (prototype)'}</span>
+                  <span>{isAnalyzing ? 'Executing AI Scrutiny...' : 'Analyze Document & View Findings'}</span>
                   <ArrowRight className="w-4 h-4 text-[#D4AF37]" />
                 </button>
               </div>
@@ -731,7 +692,7 @@ export function App() {
                   <div className="flex items-center justify-between text-xs font-bold text-[#4A1504]">
                     <span className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#4A1504] animate-ping" />
-                      <span>Running the fixture-based prototype review...</span>
+                      <span>Processing Multi-Layer Regulatory Pipeline...</span>
                     </span>
                     <span className="font-mono">Step {analysisStep + 1} of {steps.length}</span>
                   </div>
@@ -766,9 +727,7 @@ export function App() {
             </section>
 
             {/* REVEALED FINDINGS WORKSPACE */}
-            <div ref={findingsRef} className="scroll-mt-28 space-y-6">
-              {reviewError && <div role="alert" className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">{reviewError} <span className="block text-xs mt-1">Confirm the FastAPI server is running, then retry.</span></div>}
-              {prototypeReview && <PrototypePacketReview review={prototypeReview} onReset={() => { setPrototypeReview(null); setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} />}
+            <div ref={findingsRef}>
               {scrutinyResult && (
                 <DocumentFindingsView
                   result={scrutinyResult}
