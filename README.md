@@ -1,3 +1,15 @@
+---
+title: Aicte Compliance Backend
+emoji: 📈
+colorFrom: purple
+colorTo: purple
+sdk: gradio
+sdk_version: 6.30.0
+python_version: '3.12'
+app_file: app.py
+pinned: false
+---
+
 # SATYA — Smart Audit and Transparent Yield Authentication
 ### AICTE Multi-Layer Compliance & Forensic Verification Engine
 
@@ -51,7 +63,7 @@ See the [SATYA architecture diagram](docs/architecture.md) for the current appli
 ```bash
 git clone https://github.com/sumithshetty2005/SATYA---Smart_Audit_and_Transparent_Yield_Authentication.git
 cd SATYA---Smart_Audit_and_Transparent_Yield_Authentication
-pip install -r requirements.txt # or install fastapi uvicorn neo4j rank-bm25 langgraph langchain-groq langchain-google-genai pymupdf
+pip install -r requirements.txt
 ```
 
 ### 2. Configuration
