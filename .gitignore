@@ -37,3 +37,9 @@ Desktop.ini
 scratch/
 assets_extracted/
 frontend/node_modules/
+frontend/dist/
+
+# Model weights & local SQLite audit caches
+*.pt
+*.pth
+data/*.db

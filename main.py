@@ -23,14 +23,17 @@ from app.schemas.payload import (
     SourceVerificationReceipt,
 )
 from app.routers.analytics_router import router as analytics_router
+from app.routers.audit_router import router as audit_router
 from app.routers.problem_statements_router import router as problem_statements_router
+from app.routers.verification_router import router as verification_router
+from app.routers.vision_router import router as vision_router
 from app.verification.source_verifier import verify_authoritative_source
 
 # Initialize FastAPI application
 app = FastAPI(
     title="AICTE Compliance Engine & Problem Statement Provider Portal API",
     version="1.0.0",
-    description="Layer 1 Layout Analysis | Layer 2 Visual Forensics | Layer 3 Authoritative Source Verification | Layer 4 Agentic GraphRAG | Layer 5 Analytics & Audit Reporting | Problem Statement Provider Portal",
+    description="Layer 1 Layout Analysis | Layer 2 Visual Forensics | Layer 3 Authoritative Source Verification | Layer 4 Agentic GraphRAG | Layer 5 Analytics & Audit Reporting | Layer 6 Merkle Audit Chain Engine | Problem Statement Provider Portal",
 )
 
 # Configure CORS
@@ -42,9 +45,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register Layer 5 Analytics & Reporting Router and Problem Statement Portal Router
+# Register Layer Routers
 app.include_router(analytics_router)
+app.include_router(audit_router)
 app.include_router(problem_statements_router)
+app.include_router(verification_router)
+app.include_router(vision_router)
 
 # Engine singleton holder (lazy initialization to optimize startup time)
 _layout_engine: Optional[LayoutLMv3IngestionEngine] = None
