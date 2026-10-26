@@ -15,7 +15,6 @@ interface Props {
 
 export const Layer2Forensics: React.FC<Props> = ({ institution }) => {
   const forensics = institution.layer2;
-  const [sliderPosition, setSliderPosition] = useState<number>(50); // 0 to 100
   const [selectedPatch, setSelectedPatch] = useState<ELAPatch | null>(
     forensics.elaPatches[0] || null
   );
@@ -89,137 +88,64 @@ export const Layer2Forensics: React.FC<Props> = ({ institution }) => {
               </div>
             </div>
 
-            {/* Split Slider Interactive Viewer */}
-            <div className="relative w-full aspect-[1/1.25] rounded-xl overflow-hidden border-2 border-[#4A1504]/30 select-none bg-[#FAF4E8]">
-              {/* Background: Original Document Layer */}
-              <div className="absolute inset-0 p-6 flex flex-col justify-between text-[#2B1609] font-serif">
-                <div className="text-center border-b border-[#2B1609]/20 pb-3">
-                  <div className="text-[10px] uppercase font-bold tracking-widest text-[#4A1504]">
-                    GOVERNMENT LAND CONVEYANCE REGISTER • {institution.state.toUpperCase()}
+            {/* Side-by-side document and ELA signal view */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <section className="overflow-hidden rounded-xl border border-[#4A1504]/20 bg-[#F7F0E3]">
+                <div className="flex items-center justify-between border-b border-[#D4AF37]/30 px-4 py-3">
+                  <div>
+                    <p className="text-[9px] font-bold tracking-[0.16em] text-[#8A672D]">SOURCE VIEW</p>
+                    <h4 className="mt-0.5 font-cinzel text-xs font-bold text-[#4A1504]">Illustrative document fields</h4>
                   </div>
-                  <div className="text-xs font-bold mt-1">
-                    PERMANENT DOSSIER REF: {institution.id} • {institution.city.toUpperCase()}
-                  </div>
+                  <Scan className="h-4 w-4 text-[#9B762D]" />
                 </div>
-
-                <div className="space-y-4 text-xs my-auto">
-                  <p>WHEREAS the applicant educational trust claims continuous legal title:</p>
-                  <div className="p-3 bg-white/80 rounded border border-[#D4AF37]/40 relative">
-                    <span className="text-[10px] text-[#2B1609]/60 block">SCHEDULE OF PROPERTY — CLAUSE 14</span>
-                    <p className="font-bold text-sm text-[#4A1504] mt-1">
-                      Total Contiguous Land Demarcation: <span className={forensics.tamperingVerdict !== 'CLEAN' ? 'underline decoration-red-500 decoration-2' : ''}>{institution.layer1.payload.landAreaAcres} ACRES</span>
-                    </p>
-                    {forensics.tamperingVerdict !== 'CLEAN' && (
-                      <span className="text-[9px] text-red-600 font-mono block mt-1">
-                        * Document text visually rendered as {institution.layer1.payload.landAreaAcres} ACRES
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="p-3 bg-white/80 rounded border border-[#D4AF37]/40">
-                    <span className="text-[10px] text-[#2B1609]/60 block">MUNICIPAL SURVEY / KHASRA NUMBERS</span>
-                    <p className="font-semibold text-xs mt-0.5">{institution.layer1.payload.surveyNumber}</p>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-end border-t border-[#2B1609]/20 pt-4">
-                  <div className="w-24 h-24 rounded-full border-2 border-dashed border-[#4A1504]/50 flex items-center justify-center text-center p-1 text-[8px] uppercase font-bold text-[#4A1504]">
-                    Sub-Registrar Official Embossed Seal
-                  </div>
-                  <div className="text-right text-[10px]">
-                    <div className="font-serif italic font-bold">{institution.layer3.pkiCertificate.subjectName}</div>
-                    <div className="text-[8px] text-[#2B1609]/60">Authorized Signatory</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Foreground: ELA Heatmap Layer (Clipped by Slider) */}
-              <div
-                style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
-                className="absolute inset-0 bg-[#0F0804] text-white p-6 flex flex-col justify-between font-mono transition-none"
-              >
-                <div className="text-center border-b border-red-500/30 pb-3">
-                  <div className="text-[10px] text-red-400 font-bold uppercase tracking-widest">
-                    [ELA RESIDUAL INTENSITY MATRIX • GAIN {elaMultiplier}x]
-                  </div>
-                  <div className="text-xs text-red-300 font-bold mt-1">
-                    HIGH ERROR CONCENTRATION AT MODIFIED PIXEL CLUSTERS
-                  </div>
-                </div>
-
-                <div className="space-y-4 text-xs my-auto">
-                  <p className="text-gray-400">Residual pixel entropy calculated via JPEG 95% re-compression delta:</p>
-                  
-                  {forensics.tamperingVerdict !== 'CLEAN' ? (
-                    <div className="p-3 bg-red-950/80 rounded border-2 border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.6)] relative animate-pulse">
-                      <span className="text-[9px] text-red-400 uppercase font-bold block">
-                        ⚠ HIGH FREQUENCY COMPRESSION RESIDUAL ANOMALY
-                      </span>
-                      <p className="font-bold text-sm text-red-300 mt-1">
-                        Target Area: {institution.layer1.payload.landAreaAcres} ACRES [Residual Energy: {forensics.elaAnomalyScore} / 100]
-                      </p>
-                      <span className="text-[9px] text-amber-300 font-mono block mt-1">
-                        Tampering Verdict: Digital Insertion. Overwritten acreage text and spliced stamp boundary.
-                      </span>
+                <div className="flex min-h-[270px] flex-col justify-between p-4 sm:min-h-[310px]">
+                  <div className="space-y-2 text-[10px] text-[#453426]">
+                    <p className="border-b border-[#4A1504]/15 pb-2 text-center font-bold tracking-wide">LAND CONVEYANCE RECORD · {institution.state.toUpperCase()}</p>
+                    <p className="text-center text-[9px] text-[#2B1609]/65">Reference {institution.id} · {institution.city.toUpperCase()}</p>
+                    <div className="mt-4 rounded-lg border border-[#D4AF37]/45 bg-white/80 p-3">
+                      <span className="block text-[9px] uppercase tracking-wide text-[#2B1609]/60">Schedule of property</span>
+                      <span className="mt-1 block font-cinzel text-sm font-bold text-[#4A1504]">Declared land: {institution.layer1.payload.landAreaAcres} acres</span>
                     </div>
-                  ) : (
-                    <div className="p-3 bg-emerald-950/80 rounded border-2 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)] text-emerald-300">
-                      <span className="text-[9px] uppercase font-bold block text-emerald-400">
-                        ✓ UNIFORM LOW-ENTROPY NATIVE SCAN
-                      </span>
-                      <p className="font-bold text-sm mt-1">
-                        Target Area: {institution.layer1.payload.landAreaAcres} ACRES [Residual Energy: {forensics.elaAnomalyScore} / 100]
-                      </p>
-                      <span className="text-[9px] text-emerald-400 font-mono block mt-1">
-                        Verified Clean: No digital insertion, splicing, or compression halos detected.
-                      </span>
+                    <div className="rounded-lg border border-[#D4AF37]/35 bg-white/70 p-3">
+                      <span className="block text-[9px] uppercase tracking-wide text-[#2B1609]/60">Survey reference</span>
+                      <span className="mt-1 block font-semibold">{institution.layer1.payload.surveyNumber}</span>
                     </div>
-                  )}
-
-                  <div className="p-3 bg-black/60 rounded border border-gray-700 text-gray-500">
-                    <span className="text-[9px] block">Survey Baseline ({institution.layer1.payload.surveyNumber})</span>
-                    <span className="text-[10px] text-emerald-400">Baseline Flatbed Scan Noise Verified</span>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between border-t border-[#4A1504]/15 pt-3 text-[9px] text-[#594635]">
+                    <span className="rounded-full border border-dashed border-[#9B762D]/60 px-2.5 py-1">SEAL AREA</span>
+                    <span className="text-right">{institution.layer3.pkiCertificate.subjectName}<br /><span className="text-[#2B1609]/55">Signature block</span></span>
                   </div>
                 </div>
+              </section>
 
-                {/* Glowing Tampered Seal Hotspot */}
-                <div className="flex justify-between items-end border-t border-red-500/30 pt-4">
-                  <div className="w-24 h-24 rounded-full border-2 border-red-500 bg-red-950/70 shadow-[0_0_20px_rgba(239,68,68,0.5)] flex items-center justify-center text-center p-1 text-[8px] uppercase font-bold text-red-300">
-                    Spliced Alpha Seal Detected
+              <section className="relative isolate overflow-hidden rounded-xl border border-red-900/30 bg-[#160C09] text-white">
+                <div className="absolute inset-0 opacity-80" style={{ backgroundImage: 'radial-gradient(ellipse at 48% 58%, rgba(239,68,68,.3), transparent 22%), radial-gradient(ellipse at 72% 72%, rgba(245,158,11,.18), transparent 18%), repeating-linear-gradient(0deg, transparent 0 23px, rgba(255,255,255,.035) 24px), repeating-linear-gradient(90deg, transparent 0 23px, rgba(255,255,255,.035) 24px)' }} />
+                <div className="relative flex items-center justify-between border-b border-red-400/25 px-4 py-3">
+                  <div>
+                    <p className="text-[9px] font-bold tracking-[0.16em] text-red-300">ELA SIGNAL VIEW</p>
+                    <h4 className="mt-0.5 font-cinzel text-xs font-bold text-white">Residual intensity map</h4>
                   </div>
-                  <div className="text-right text-[10px] text-gray-400">
-                    <div>Signature Block: Clean</div>
-                    <div className="text-[8px] text-emerald-400">Consistent Ink Artifacts</div>
+                  <span className="rounded border border-white/15 px-2 py-1 text-[9px] font-mono text-white/65">GAIN {elaMultiplier}×</span>
+                </div>
+                <div className="relative flex min-h-[270px] flex-col justify-between p-4 sm:min-h-[310px]">
+                  <div className="flex items-center justify-between text-[9px] font-mono text-white/55"><span>COMPRESSION RESIDUALS</span><span>{forensics.elaAnomalyScore}/100</span></div>
+                  <div className="relative mx-auto flex h-32 w-full max-w-[260px] items-center justify-center rounded-lg border border-white/15 bg-white/[0.03]">
+                    <span className={`absolute left-[28%] top-[25%] h-16 w-20 rounded-full blur-xl ${forensics.tamperingVerdict === 'CLEAN' ? 'bg-emerald-400/35' : 'bg-red-500/65'}`} />
+                    <span className={`absolute right-[20%] bottom-[18%] h-12 w-16 rounded-full blur-lg ${forensics.tamperingVerdict === 'CLEAN' ? 'bg-emerald-300/20' : 'bg-orange-400/55'}`} />
+                    <div className={`relative rounded-md border px-4 py-2 text-center text-[9px] font-bold tracking-wide shadow-lg ${forensics.tamperingVerdict === 'CLEAN' ? 'border-emerald-400/70 bg-emerald-950/70 text-emerald-200' : 'border-red-400/80 bg-red-950/80 text-red-200'}`}>
+                      {forensics.tamperingVerdict === 'CLEAN' ? 'LOW VARIANCE SIGNAL' : 'ANOMALY REGION'}
+                    </div>
+                    {forensics.tamperingVerdict !== 'CLEAN' && <span className="absolute left-[31%] top-[29%] h-6 w-8 rounded-full border border-red-300/90" />}
+                  </div>
+                  <div className={`rounded-lg border p-3 ${forensics.tamperingVerdict === 'CLEAN' ? 'border-emerald-400/30 bg-emerald-950/45' : 'border-red-400/35 bg-red-950/45'}`}>
+                    <div className="flex items-center gap-2 text-[10px] font-bold">
+                      {forensics.tamperingVerdict === 'CLEAN' ? <ShieldCheck className="h-4 w-4 text-emerald-300" /> : <AlertTriangle className="h-4 w-4 text-red-300" />}
+                      <span className={forensics.tamperingVerdict === 'CLEAN' ? 'text-emerald-200' : 'text-red-200'}>{forensics.tamperingVerdict === 'CLEAN' ? 'No prominent residual anomaly in this sample' : `Potential residual anomaly · ${institution.layer1.payload.landAreaAcres} acre field`}</span>
+                    </div>
+                    <p className="mt-1 text-[9px] leading-relaxed text-white/60">Illustrative signal visualization. Review the source document and evidence before drawing conclusions.</p>
                   </div>
                 </div>
-              </div>
-
-              {/* Slider Divider Bar */}
-              <div
-                style={{ left: `${sliderPosition}%` }}
-                className="absolute top-0 bottom-0 w-1 bg-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.8)] z-30 pointer-events-none"
-              >
-                <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-[#4A1504] border-2 border-[#D4AF37] text-[#F5E6C8] flex items-center justify-center shadow-lg text-[9px] font-bold">
-                  ⇄
-                </div>
-              </div>
-
-              {/* Drag controller overlay */}
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={sliderPosition}
-                onChange={(e) => setSliderPosition(Number(e.target.value))}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-40"
-              />
-            </div>
-
-            {/* Slider Controls Hint */}
-            <div className="flex items-center justify-between text-xs text-[#2B1609]/70 px-2">
-              <span>◀ Original Document View (Left)</span>
-              <span className="font-mono text-[#4A1504] font-semibold">Drag slider across canvas to reveal ELA heatmap</span>
-              <span>ELA Difference Residuals (Right) ▶</span>
+              </section>
             </div>
           </div>
 

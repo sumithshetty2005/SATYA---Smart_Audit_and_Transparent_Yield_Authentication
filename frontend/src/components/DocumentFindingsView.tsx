@@ -96,6 +96,8 @@ export const DocumentFindingsView: React.FC<Props> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'summary' | 'layer2' | 'layer3' | 'layer4' | 'layer5' | 'layer6'>('summary');
   const [elaSliderPos, setElaSliderPos] = useState<number>(50);
+  const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
+  const [expandedCitationId, setExpandedCitationId] = useState<string | null>(null);
 
   return (
     <div className="space-y-6 font-sans-modern scroll-mt-6" id="findings-section">
@@ -522,11 +524,18 @@ export const DocumentFindingsView: React.FC<Props> = ({
               {result.layer4.nodes.map((node) => {
                 const isViolation = node.status === 'VIOLATION';
                 const isCompliant = node.status === 'COMPLIANT';
+                const linkedCitation = result.layer4.citations.find((citation) =>
+                  Boolean(node.clause && citation.aphClause.includes(node.clause)) || citation.ruleTitle === node.name
+                );
+                const isExpanded = expandedRuleId === node.id;
 
                 return (
-                  <div
+                  <button
                     key={node.id}
-                    className={`p-3.5 rounded-xl border text-xs space-y-1.5 transition-all ${
+                    type="button"
+                    aria-expanded={isExpanded}
+                    onClick={() => setExpandedRuleId(isExpanded ? null : node.id)}
+                    className={`w-full p-3.5 rounded-xl border text-xs space-y-1.5 text-left transition-all cursor-pointer ${
                       isViolation
                         ? 'bg-red-50/90 border-red-300 text-red-950 shadow-2xs'
                         : isCompliant
@@ -558,7 +567,17 @@ export const DocumentFindingsView: React.FC<Props> = ({
                     <div className="text-[10px] opacity-80 pt-1 border-t border-current/15">
                       Type: <span className="font-mono font-bold">{node.type}</span>
                     </div>
-                  </div>
+                    <div className="pt-1 text-[9px] font-semibold text-[#79502A]">{isExpanded ? 'Hide details −' : 'Click for rule details +'}</div>
+                    {isExpanded && <div className="mt-1 space-y-1.5 border-t border-current/15 pt-2 text-[10px] leading-relaxed">
+                      <p>{isViolation
+                        ? 'This item is flagged for review because the current findings associate it with a possible requirement gap. Check the linked source evidence and clause before reaching a decision.'
+                        : isCompliant
+                        ? 'The current review marks this check as compliant based on the available scenario evidence. Confirm the underlying source pages and calculation before relying on this status.'
+                        : 'This is a context node in the rule traversal. It helps relate the filing to APH rules but does not independently indicate a pass or a failure.'}</p>
+                      {node.clause && <p><strong>Reference:</strong> {node.clause}</p>}
+                      {linkedCitation && <p><strong>Related finding:</strong> {linkedCitation.ruleTitle} — observed {linkedCitation.institutionalValue}; threshold {linkedCitation.statutoryThreshold}.</p>}
+                    </div>}
+                  </button>
                 );
               })}
             </div>
@@ -571,8 +590,9 @@ export const DocumentFindingsView: React.FC<Props> = ({
                 ⚠ Specific Legal Non-Compliance Citations ({result.layer4.citations.length} Clauses Flagged):
               </span>
               <div className="space-y-2.5">
-                {result.layer4.citations.map((c) => (
-                  <div key={c.id} className="p-3.5 bg-red-50 rounded-xl border border-red-300 text-xs space-y-1.5">
+                {result.layer4.citations.map((c) => {
+                  const isExpanded = expandedCitationId === c.id;
+                  return <button key={c.id} type="button" aria-expanded={isExpanded} onClick={() => setExpandedCitationId(isExpanded ? null : c.id)} className="w-full p-3.5 bg-red-50 rounded-xl border border-red-300 text-xs space-y-1.5 text-left transition hover:bg-red-100/70 cursor-pointer">
                     <div className="flex justify-between font-bold text-red-950">
                       <span>{c.aphClause}: {c.ruleTitle}</span>
                       <span className="font-mono text-[9px] px-2 py-0.5 rounded bg-red-700 text-white">
@@ -586,17 +606,23 @@ export const DocumentFindingsView: React.FC<Props> = ({
                     <p className="text-[11px] text-[#2B1609]/80 italic pt-1 border-t border-red-200">
                       "{c.legalEnforcementStatement}"
                     </p>
-                  </div>
-                ))}
+                    <span className="block pt-1 text-[9px] font-semibold text-red-800">{isExpanded ? 'Hide explanation −' : 'Click for explanation +'}</span>
+                    {isExpanded && <div className="space-y-1.5 border-t border-red-200 pt-2 text-[10px] leading-relaxed text-red-950">
+                      <p><strong>How to read this:</strong> the observed value is compared with the threshold shown above. The delta describes the difference reported by this review scenario.</p>
+                      <p><strong>APH reference:</strong> {c.aphChapter}, {c.aphSection}, clause {c.aphClause}{c.tableReference ? `, ${c.tableReference}` : ''}.</p>
+                      <p><strong>Suggested reviewer action:</strong> inspect the cited source pages, confirm the relevant figures, and record a human determination. This finding alone is not a regulatory decision.</p>
+                    </div>}
+                  </button>;
+                })}
               </div>
             </div>
           ) : (
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs space-y-1.5">
               <span className="font-bold flex items-center gap-1.5 text-emerald-800">
-                ✓ Full Statutory Clearance Confirmed by Multi-Agent Graph Traversal
+                ✓ No flagged APH rule gaps in the evaluated checks
               </span>
               <p className="text-[11px] leading-relaxed text-emerald-900/90">
-                All 32 traversal paths across APH 2024–2027 Chapters I, II, IV, and VI evaluated compliant. Zero discrepancies found in land tenure, cadre ratios, and structural carpet norms.
+                No deficiencies were identified among the APH checks displayed above. This result is limited to the rules evaluated and information available in this review; verify the cited source evidence and calculations before making a formal decision.
               </p>
             </div>
           )}

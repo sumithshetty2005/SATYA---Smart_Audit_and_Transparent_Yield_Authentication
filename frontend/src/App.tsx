@@ -437,33 +437,6 @@ export function App() {
       {/* Three.js Background Overlay */}
       <ThreeBackground />
 
-      {/* Official Topmost Government Strip */}
-      <div className="bg-[#2B1609] text-[#F5E6C8] px-4 py-1.5 text-[11px] font-sans-modern flex flex-wrap items-center justify-between gap-3 border-b border-[#D4AF37]/30 relative z-40">
-        <div className="flex items-center gap-3">
-          <div className="flex h-2.5 w-6 rounded-xs overflow-hidden shadow-xs">
-            <div className="w-1/3 bg-[#FF9933]" />
-            <div className="w-1/3 bg-white" />
-            <div className="w-1/3 bg-[#138808]" />
-          </div>
-          <span className="font-medium tracking-wide">
-            SATYA • AICTE compliance and document review
-          </span>
-          <span className="hidden md:inline text-[#D4AF37]">•</span>
-          <span className="hidden md:inline text-[#F5E6C8]/80 font-mono">
-            Rules assessment not run for synthetic packet reviews
-          </span>
-        </div>
-
-          <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5 text-amber-300">
-            <span className="w-2 h-2 rounded-full bg-amber-300" />
-            <span className="font-mono text-[10px]">Issuer services: NOT CONNECTED</span>
-          </div>
-          <span className="text-[#D4AF37]/50">|</span>
-          <span className="font-mono text-[10px] text-[#F5E6C8]/75">Demo data: SYNTHETIC</span>
-        </div>
-      </div>
-
       {/* Main Administrative Navigation Header */}
       <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#FAF4E8]/90 border-b border-[#D4AF37]/40 shadow-[0_4px_20px_rgba(74,21,4,0.08)]">
         <div className="h-1.5 w-full bg-gradient-to-r from-[#4A1504] via-[#D4AF37] to-[#4A1504] opacity-90" />

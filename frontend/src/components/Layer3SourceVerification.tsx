@@ -198,13 +198,13 @@ export const Layer3SourceVerification: React.FC<Props> = ({
 
   const hasPKIData = Boolean(institution?.layer3?.pkiCertificate);
   const pkiData = institution?.layer3?.pkiCertificate || {
-    subjectName: 'Not supplied',
-    issuerCN: 'Not checked',
-    serialNumber: 'Not available',
-    validFrom: 'Not available',
-    validTo: 'Not available',
-    keyAlgorithm: 'Not available',
-    signatureAlgorithm: 'Not available',
+    subjectName: '',
+    issuerCN: '',
+    serialNumber: '',
+    validFrom: '',
+    validTo: '',
+    keyAlgorithm: '',
+    signatureAlgorithm: '',
     digestMatch: false,
     ocspStatus: 'UNKNOWN' as const,
     postSigningAlterationDetected: false,
@@ -446,14 +446,14 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">Authoritative Deed:</span>
                 <span className="font-mono font-bold text-[#2B1609]">
-                  {sourceReceipt?.authoritative_record?.deed_number || 'Not supplied'}
+                  {sourceReceipt?.authoritative_record?.deed_number || 'Awaiting issuer record'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">Registered Owner:</span>
                 <span className="font-medium text-[#2B1609] truncate max-w-[190px]">
                   {sourceReceipt?.authoritative_record?.registered_owner ||
-                    'Not available - no issuer response'}
+                    'Issuer response unavailable'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -559,20 +559,20 @@ export const Layer3SourceVerification: React.FC<Props> = ({
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">Subject CN:</span>
-                <span className="font-semibold text-[#4A1504]">{pkiData.subjectName}</span>
+                  <span className="font-semibold text-[#4A1504]">{hasPKIData ? pkiData.subjectName || 'Certificate subject unavailable' : 'Awaiting signed PDF'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">Issuing CA:</span>
-                <span className="font-medium text-[#2B1609]">{pkiData.issuerCN}</span>
+                <span className="font-medium text-[#2B1609]">{hasPKIData ? pkiData.issuerCN || 'Issuer details unavailable' : 'Awaiting certificate evidence'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">Serial No:</span>
-                <span className="font-mono text-[10px] text-[#2B1609]">{pkiData.serialNumber}</span>
+                <span className="font-mono text-[10px] text-[#2B1609]">{hasPKIData ? pkiData.serialNumber || 'Serial number unavailable' : 'Not checked'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">Algorithm:</span>
                 <span className="font-mono text-[#2B1609]">
-                  {pkiData.keyAlgorithm} / {pkiData.signatureAlgorithm.split(' ')[0]}
+                  {hasPKIData ? `${pkiData.keyAlgorithm || 'Key algorithm unavailable'} / ${pkiData.signatureAlgorithm.split(' ')[0] || 'Signature algorithm unavailable'}` : 'Awaiting signature evidence'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -603,12 +603,13 @@ export const Layer3SourceVerification: React.FC<Props> = ({
                 )}
                 <span className="font-bold text-[11px]">
                   {!hasPKIData
-                    ? 'No signature evidence supplied; validation not run'
+                    ? 'No digital signature detected in this document'
                     : pkiData.postSigningAlterationDetected
                     ? 'Unauthorized Post-Signing Modification Detected'
                     : 'Cryptographic Document Integrity Intact'}
                 </span>
               </div>
+              {!hasPKIData && <p className="pl-6 text-[10px] leading-relaxed text-slate-600">Certificate checks were skipped. A digitally signed PDF is needed to inspect the signer, issuing authority, and document integrity.</p>}
               {pkiData.bytesAlteredTrace && (
                 <p className="text-[10px] font-mono text-red-900 leading-relaxed">
                   {pkiData.bytesAlteredTrace}
@@ -644,41 +645,33 @@ export const Layer3SourceVerification: React.FC<Props> = ({
                     : 'bg-red-100 text-red-800 border border-red-300'
                 }`}
               >
-                {!hasQRCode ? 'NO QR SUPPLIED' : qrData.hmacSignatureValid ? 'HMAC VALID' : 'HMAC INVALID'}
+                {!hasQRCode ? 'NO QR DETECTED' : qrData.hmacSignatureValid ? 'HMAC VALID' : 'HMAC INVALID'}
               </span>
             </div>
 
             {/* QR Visualization */}
-            <div className="p-3 bg-[#FAF4E8] rounded-xl border border-[#D4AF37]/30 flex items-center gap-3">
-              <div className="w-16 h-16 bg-white p-1 rounded-lg border border-[#D4AF37]/40 shadow-xs flex items-center justify-center shrink-0">
-                <QrCode className="w-14 h-14 text-[#4A1504]" />
-              </div>
-              <div className="space-y-1 text-xs overflow-hidden">
-                <span className="text-[10px] text-[#2B1609]/60 uppercase font-bold block">
-                  Decoded URL
-                </span>
-                <p className="font-mono text-[11px] truncate text-[#4A1504] font-semibold">
-                  {qrData.qrPayloadUrl || 'No QR payload supplied'}
-                </p>
-                <div className="flex items-center gap-1.5 text-[10px]">
-                  <span>Domain Trust:</span>
-                  <span
-                    className={`font-bold ${
-                      !hasQRCode ? 'text-slate-600' : qrData.trustedDomain ? 'text-emerald-700' : 'text-red-700'
-                    }`}
-                  >
-                    {!hasQRCode ? 'Not checked' : qrData.trustedDomain ? 'Trusted domain' : 'Untrusted domain'}
-                  </span>
+            {hasQRCode ? (
+              <div className="p-3 bg-[#FAF4E8] rounded-xl border border-[#D4AF37]/30 flex items-center gap-3">
+                <div className="w-16 h-16 bg-white p-1 rounded-lg border border-[#D4AF37]/40 shadow-xs flex items-center justify-center shrink-0"><QrCode className="w-14 h-14 text-[#4A1504]" /></div>
+                <div className="space-y-1 text-xs overflow-hidden">
+                  <span className="text-[10px] text-[#2B1609]/60 uppercase font-bold block">Decoded URL</span>
+                  <p className="font-mono text-[11px] truncate text-[#4A1504] font-semibold">{qrData.qrPayloadUrl || 'Payload could not be decoded'}</p>
+                  <div className="flex items-center gap-1.5 text-[10px]"><span>Domain Trust:</span><span className={`font-bold ${qrData.trustedDomain ? 'text-emerald-700' : 'text-red-700'}`}>{qrData.trustedDomain ? 'Trusted domain' : 'Untrusted domain'}</span></div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-start gap-3 rounded-xl border border-slate-300 bg-slate-50 p-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white"><FileSearch className="h-6 w-6 text-slate-500" /></div>
+                <div><p className="text-xs font-bold text-slate-800">No QR code detected in this document</p><p className="mt-1 text-[10px] leading-relaxed text-slate-600">QR decoding and domain checks were skipped. Include a page with a visible QR code to inspect its payload and issuer domain.</p></div>
+              </div>
+            )}
 
             {/* Embedded Metadata */}
-            <div className="space-y-2 text-xs">
+            {hasQRCode ? <div className="space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">Approval Reference:</span>
                 <span className="font-mono font-bold text-[#4A1504]">
-                  {qrData.embeddedMetadata.approvalRef}
+                  {qrData.embeddedMetadata.approvalRef || 'Not encoded in QR'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -690,10 +683,10 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">Signatory:</span>
                 <span className="font-medium text-[#2B1609]">
-                  {qrData.embeddedMetadata.authorizedSignatory}
+                  {qrData.embeddedMetadata.authorizedSignatory || 'Not encoded in QR'}
                 </span>
               </div>
-            </div>
+            </div> : <p className="rounded-lg bg-slate-50 px-3 py-2 text-[10px] text-slate-600">Embedded approval metadata will appear here when a QR code is detected.</p>}
           </div>
 
           <div className="pt-2 text-[10px] text-[#2B1609]/70 font-mono border-t border-[#D4AF37]/20">
