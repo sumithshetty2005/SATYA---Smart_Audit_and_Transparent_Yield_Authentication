@@ -3,7 +3,7 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive \
-    PORT=8000
+    PORT=7860
 
 # Install required system packages for OpenCV, PDF rendering, and compilation
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,8 +32,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY --chown=user:user . .
 
-# Expose default ports
-EXPOSE 8000 10000
+# Expose default port
+EXPOSE 8000 10000 7860
 
-# Start FastAPI server binding to $PORT dynamically (Render/Cloud compatible)
+# Start FastAPI server binding dynamically to $PORT (Render/Cloud) or default to 8000
 CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+
