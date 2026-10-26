@@ -11,7 +11,6 @@ import {
   FileText,
   AlertTriangle,
   ShieldCheck,
-  Sparkles,
   ArrowRight,
   Cpu,
   Fingerprint,
@@ -24,6 +23,10 @@ import {
 } from 'lucide-react';
 
 export function App() {
+  const currentPage = window.location.pathname.includes('audit') ? 'audit'
+    : window.location.pathname.includes('about') ? 'about'
+    : window.location.pathname.includes('faq') ? 'faq'
+    : 'home';
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -240,13 +243,16 @@ export function App() {
             },
             layer5: {
               cadTotalAreaSqm: 14250,
+              carpetAreaSqm: 11371.5,
               circulationRatio: 0.202,
               nearestFireExitM: 35.8,
               geofenceValid: false,
+              gpsDistanceMeters: 388.4,
               gpsCoords: '18.5204° N, 73.8567° E (388m outside boundary)',
               polygons: [
-                { id: 'cad-1', roomName: 'Classrooms Block', category: 'INSTRUCTIONAL', areaSqm: 528, calculatedBy: 'Shapely CAD', points: '50,50 350,50 350,220 50,220', status: 'PASS' },
-                { id: 'cad-2', roomName: 'Circulation Corridors', category: 'CIRCULATION', areaSqm: 210, calculatedBy: 'Shapely CAD', points: '250,235 350,235 350,420 250,420', status: 'DEFICIENT' },
+                { id: 'cad-1', roomName: 'Classrooms Block', category: 'INSTRUCTIONAL', areaSqm: 10200, calculatedBy: 'Illustrative scenario', points: '40,45 300,45 300,230 40,230', status: 'PASS' },
+                { id: 'cad-2', roomName: 'Administration & Support', category: 'ADMIN', areaSqm: 1171.5, calculatedBy: 'Illustrative scenario', points: '330,45 580,45 580,230 330,230', status: 'PASS' },
+                { id: 'cad-3', roomName: 'Circulation Corridors', category: 'CIRCULATION', areaSqm: 2878.5, calculatedBy: 'Illustrative scenario', points: '40,250 580,250 580,420 40,420', status: 'DEFICIENT' },
               ],
               yoloDetections: [
                 { id: 'y1', label: 'CNC Lathe Machine', confidence: 0.974, bbox: [12, 10, 48, 42], requiredQty: 20, detectedQty: 18, compliant: false },
@@ -372,13 +378,16 @@ export function App() {
             },
             layer5: {
               cadTotalAreaSqm: 22400,
+              carpetAreaSqm: 16016,
               circulationRatio: 0.285,
               nearestFireExitM: 19.4,
               geofenceValid: true,
+              gpsDistanceMeters: 42.5,
               gpsCoords: '19.1232° N, 72.8361° E (Within plot bounds)',
               polygons: [
-                { id: 'ccad-1', roomName: 'Instructional Wings A & B', category: 'INSTRUCTIONAL', areaSqm: 12400, calculatedBy: 'Shapely CAD', points: '40,40 380,40 380,240 40,240', status: 'PASS' },
-                { id: 'ccad-2', roomName: 'Main Atrium & Circulation Foyers', category: 'CIRCULATION', areaSqm: 3600, calculatedBy: 'Shapely CAD', points: '290,250 590,250 590,430 290,430', status: 'PASS' },
+                { id: 'ccad-1', roomName: 'Instructional Wings A & B', category: 'INSTRUCTIONAL', areaSqm: 12400, calculatedBy: 'Illustrative scenario', points: '40,40 380,40 380,230 40,230', status: 'PASS' },
+                { id: 'ccad-2', roomName: 'Main Atrium & Circulation Foyers', category: 'CIRCULATION', areaSqm: 6384, calculatedBy: 'Illustrative scenario', points: '40,245 580,245 580,355 40,355', status: 'PASS' },
+                { id: 'ccad-3', roomName: 'Administration & Support', category: 'ADMIN', areaSqm: 3616, calculatedBy: 'Illustrative scenario', points: '40,370 580,370 580,420 40,420', status: 'PASS' },
               ],
               yoloDetections: [
                 { id: 'cy1', label: 'CNC 5-Axis VMC Center', confidence: 0.992, bbox: [10, 10, 45, 45], requiredQty: 25, detectedQty: 28, compliant: true },
@@ -437,7 +446,7 @@ export function App() {
             <div className="w-1/3 bg-[#138808]" />
           </div>
           <span className="font-medium tracking-wide">
-            SATYA prototype • AICTE compliance and document-review concept
+            SATYA • AICTE compliance and document review
           </span>
           <span className="hidden md:inline text-[#D4AF37]">•</span>
           <span className="hidden md:inline text-[#F5E6C8]/80 font-mono">
@@ -460,7 +469,7 @@ export function App() {
         <div className="h-1.5 w-full bg-gradient-to-r from-[#4A1504] via-[#D4AF37] to-[#4A1504] opacity-90" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
-          <a href="#home" className="flex items-center gap-3.5 group shrink-0" onClick={() => setScrutinyResult(null)}>
+          <a href="/" className="flex items-center gap-3.5 group shrink-0">
             <div className="satya-mark w-12 h-12 rounded-2xl bg-[#4A1504] border border-[#D4AF37] shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:rotate-[-6deg] group-hover:scale-105 shrink-0">
               <ShieldCheck className="w-7 h-7 text-[#D4AF37]" />
             </div>
@@ -471,15 +480,15 @@ export function App() {
           </a>
 
           <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-5 text-xs font-bold text-[#4A1504]">
-            <a href="#home" className="hover:text-[#C59B27] transition-colors">Home</a>
-            <a href="#features" className="hover:text-[#C59B27] transition-colors">Features</a>
-            <a href="#audit" className="hover:text-[#C59B27] transition-colors">Audit workspace</a>
-            <a href="#about" className="hover:text-[#C59B27] transition-colors">About</a>
-            <a href="#faq" className="hover:text-[#C59B27] transition-colors">FAQ</a>
+            <a href="/" className="hover:text-[#C59B27] transition-colors">Home</a>
+            {currentPage === 'home' && <a href="#features" className="hover:text-[#C59B27] transition-colors">Features</a>}
+            <a href="/audit.html" className="hover:text-[#C59B27] transition-colors">Audit workspace</a>
+            <a href="/about.html" className="hover:text-[#C59B27] transition-colors">About</a>
+            <a href="/faq.html" className="hover:text-[#C59B27] transition-colors">FAQ</a>
           </nav>
 
           <div className="flex items-center gap-2.5">
-            <a href="#audit" className="px-4 py-2 rounded-xl text-xs font-bold bg-[#4A1504] text-[#FFF3B0] hover:shadow-lg border border-[#D4AF37]/60 transition-all">Start an audit <ArrowRight className="inline w-3.5 h-3.5 ml-1" /></a>
+            <a href="/audit.html" className="px-4 py-2 rounded-xl text-xs font-bold bg-[#4A1504] text-[#FFF3B0] hover:shadow-lg border border-[#D4AF37]/60 transition-all">Start an audit <ArrowRight className="inline w-3.5 h-3.5 ml-1" /></a>
             {scrutinyResult && (
               <button
                 onClick={() => setIsReportModalOpen(true)}
@@ -499,75 +508,90 @@ export function App() {
             </button>
           </div>
         </div>
+        <nav aria-label="Mobile navigation" className="lg:hidden flex items-center justify-center gap-5 px-3 pb-3 text-xs font-bold text-[#4A1504]">
+          <a href="/" className="hover:text-[#C59B27]">Home</a>
+          {currentPage === 'home' && <a href="#features" className="hover:text-[#C59B27]">Features</a>}
+          <a href="/audit.html" className="hover:text-[#C59B27]">Audit workspace</a>
+          <a href="/about.html" className="hover:text-[#C59B27]">About</a>
+          <a href="/faq.html" className="hover:text-[#C59B27]">FAQ</a>
+        </nav>
       </header>
 
       {/* Main Landing & Scrutiny Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-8 relative z-10 space-y-10">
+      <main className={`flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 relative z-10 ${currentPage === 'home' ? 'py-3 space-y-6' : 'py-8 space-y-10'}`}>
+        {currentPage === 'home' && <>
         {/* Home / Landing Page Hero Banner */}
-        <section id="home" className="scroll-mt-28 relative rounded-3xl overflow-hidden border-2 border-[#D4AF37]/60 bg-gradient-to-br from-[#FAF4E8] via-[#F5E6C8] to-[#EEDFB8] p-6 md:p-10 shadow-2xl">
-              {/* Sacred Mandala Watermark */}
-              <div
-                className="absolute -right-20 -bottom-20 w-96 h-96 pointer-events-none opacity-15 bg-contain bg-no-repeat"
-                style={{ backgroundImage: `url('/assets/mandala.png')` }}
-              />
-
-              <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                <div className="lg:col-span-8 space-y-4">
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#4A1504] text-[#F5E6C8] text-xs font-cinzel font-semibold tracking-wider shadow-sm">
-                    <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-                    <span>AICTE REGULATORY COMPLIANCE ARCHITECTURE • PS SH26261</span>
-                  </div>
-
-                  <h1 className="font-cinzel text-3xl md:text-5xl font-bold text-[#4A1504] tracking-wide leading-tight">
-                    Trust, verified at every layer. <br />
-                    <span className="text-[#2B1609] italic font-serif">Smart document authentication</span>
-                  </h1>
-
-                  <p className="text-sm md:text-base text-[#2B1609]/85 leading-relaxed max-w-2xl font-serif">
-                    SATYA helps review AICTE institutional filings through document extraction, visual forensics, source checks and Approval Process Handbook rule validation — with findings designed to be traceable and reviewable.
-                  </p>
-
-                  {/* Baudhayana Shulba Sutras Shloka Callout */}
-                  <div className="p-4 rounded-2xl bg-white/60 border border-[#D4AF37]/50 shadow-inner max-w-2xl">
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl select-none">🏛️</span>
-                      <div className="space-y-1">
-                        <div className="font-serif italic font-bold text-xs md:text-sm text-[#4A1504]">
-                          "दीर्घस्याक्ष्णया रज्जुः पार्श्वमानी तिर्यङ्ग्मानी च यत्पृथग्भूते कुरुतस्तदुभयं करोति ॥"
-                        </div>
-                        <p className="text-[11px] text-[#2B1609]/75 font-sans-modern">
-                          — <em>Baudhayana Sulba-Sutra 1.48 (~800 BCE)</em>: The foundational Indian geometric principle underpinning physical infrastructure compliance in AICTE handbook standards.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right: Vedic Scholar Illustration */}
-                <div className="lg:col-span-4 flex flex-col items-center justify-center">
-                  <div className="relative w-full max-w-xs p-5 bg-white/70 backdrop-blur-md rounded-2xl border-2 border-[#D4AF37]/50 shadow-xl text-center space-y-3">
-                    <div className="relative mx-auto w-32 h-32 rounded-full overflow-hidden border-3 border-[#D4AF37] shadow-lg bg-[#FAF4E8]">
-                      <img
-                        src="/assets/vedic_scholar.png"
-                        alt="Vedic Sage Baudhayana"
-                        className="w-full h-full object-cover object-top"
-                      />
-                    </div>
-                    <div>
-                    <h3 className="font-cinzel font-bold text-sm text-[#4A1504]">SATYA verification pipeline</h3>
-                      <p className="text-[11px] text-[#2B1609]/75 mt-0.5">
-                        LayoutLMv3 • ELA Forensics • DigiLocker • Neo4j GraphRAG • Merkle Ledger
-                      </p>
-                    </div>
-                  </div>
-                </div>
+        <section id="home" className="scroll-mt-28 relative overflow-hidden border border-[#D4AF37]/45 bg-[#F8F1E5] shadow-[0_24px_70px_rgba(74,21,4,0.12)] lg:h-[calc(100svh-10rem)] lg:min-h-[620px]">
+          <div className="grid min-h-[620px] lg:h-full lg:min-h-0 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="relative z-10 flex flex-col justify-center px-7 py-8 sm:px-12 lg:px-11 lg:py-6 xl:px-14">
+              <p className="mb-4 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.24em] text-[#8B6825]">
+                <span className="h-px w-8 bg-[#B18A3A]" /> Evidence-led institutional review
+              </p>
+              <h1 className="max-w-xl font-cinzel text-3xl font-semibold leading-[1.08] tracking-tight text-[#35180D] sm:text-4xl xl:text-[3.6rem]">
+                Clear evidence.<br />
+                <span className="font-serif font-normal italic text-[#79502A]">Confident scrutiny.</span>
+              </h1>
+              <p className="mt-4 max-w-lg font-serif text-sm leading-6 text-[#5E4938] sm:text-base sm:leading-7">
+                A considered workspace for reviewing technical education filings, connecting each claim to its supporting evidence and applicable checks.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <a href="/audit.html" className="inline-flex items-center gap-3 bg-[#35180D] px-4 py-2.5 text-xs font-semibold text-[#FFF4DA] shadow-lg transition hover:bg-[#542512] sm:text-sm">
+                  Open audit workspace <ArrowRight className="h-4 w-4 text-[#D4AF37]" />
+                </a>
+                <a href="#features" className="inline-flex items-center gap-2 border border-[#8B6825]/45 px-4 py-2.5 text-xs font-semibold text-[#4A2818] transition hover:bg-[#EEDFB8]/50 sm:text-sm">
+                  See how it works
+                </a>
               </div>
+              <div className="mt-6 flex flex-wrap gap-x-4 gap-y-1 border-t border-[#A98956]/30 pt-4 text-[8px] font-bold tracking-[0.14em] text-[#7E6544] sm:text-[9px]">
+                <span>DOCUMENT REVIEW</span><span>VISUAL EVIDENCE</span><span>APH RULE MAPPING</span>
+              </div>
+            </div>
+
+            <div className="relative min-h-[300px] overflow-hidden bg-[#263C3C] sm:min-h-[360px] lg:min-h-0" role="img" aria-label="Illustration of an institutional campus with an evidence review document">
+              <svg viewBox="0 0 1000 760" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" aria-hidden="true">
+                <defs>
+                  <linearGradient id="satya-sky" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#C9B895" /><stop offset=".52" stopColor="#748B7D" /><stop offset="1" stopColor="#263C3C" /></linearGradient>
+                  <linearGradient id="satya-building" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#D6C6A5" /><stop offset="1" stopColor="#8C7555" /></linearGradient>
+                  <linearGradient id="satya-shade" x1="0" y1="0" x2="1" y2="0"><stop stopColor="#172D2D" stopOpacity=".6" /><stop offset=".7" stopColor="#172D2D" stopOpacity="0" /></linearGradient>
+                  <pattern id="satya-grid" width="42" height="42" patternUnits="userSpaceOnUse"><path d="M42 0H0V42" fill="none" stroke="#F6EAD1" strokeOpacity=".13" strokeWidth="1" /></pattern>
+                </defs>
+                <rect width="1000" height="760" fill="url(#satya-sky)" />
+                <circle cx="792" cy="132" r="92" fill="#E9D6A5" fillOpacity=".62" />
+                <path d="M0 395 Q110 270 208 356 Q279 210 392 333 Q498 190 619 350 Q750 205 863 331 Q927 268 1000 328V520H0Z" fill="#243F38" fillOpacity=".9" />
+                <path d="M0 434 Q133 335 257 414 Q365 310 493 406 Q624 297 754 403 Q892 304 1000 400V545H0Z" fill="#365648" />
+                <path d="M84 438 L84 302 L500 232 L916 302 L916 438Z" fill="url(#satya-building)" stroke="#594832" strokeWidth="8" />
+                <path d="M54 307 L500 202 L947 307 L947 333 L500 235 L54 333Z" fill="#E1D2B2" stroke="#594832" strokeWidth="8" />
+                <path d="M112 296 L500 167 L888 296Z" fill="#8E7958" stroke="#594832" strokeWidth="8" />
+                <path d="M168 298 L500 190 L832 298" fill="none" stroke="#E7D9BA" strokeWidth="14" />
+                <g fill="#4A4A3A" stroke="#594832" strokeWidth="5">
+                  <path d="M150 325h58v113h-58z" /><path d="M260 325h58v113h-58z" /><path d="M371 325h58v113h-58z" />
+                  <path d="M481 325h58v113h-58z" /><path d="M591 325h58v113h-58z" /><path d="M702 325h58v113h-58z" /><path d="M812 325h58v113h-58z" />
+                </g>
+                <path d="M0 438H1000V760H0Z" fill="#9C8057" />
+                <path d="M0 520 Q295 457 558 522 Q804 582 1000 494V760H0Z" fill="#6D6347" />
+                <path d="M0 0H1000V760H0Z" fill="url(#satya-grid)" />
+                <path d="M0 0H580V760H0Z" fill="url(#satya-shade)" />
+              </svg>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#182B27]/45 via-transparent to-[#182B27]/10" />
+              <div className="absolute left-5 top-5 flex items-center gap-2 border border-white/30 bg-[#F8F1E5]/90 px-3 py-2 text-[10px] font-semibold tracking-wide text-[#35180D] shadow-lg backdrop-blur sm:left-8 sm:top-8">
+                <ShieldCheck className="h-4 w-4 text-[#9A7429]" /> Evidence, connected to each review
+              </div>
+              <div className="absolute bottom-5 left-5 w-[min(290px,calc(100%-2.5rem))] border border-[#F1D58C]/70 bg-[#FBF6EB]/95 p-4 shadow-2xl backdrop-blur sm:bottom-8 sm:left-8">
+                <div className="flex items-center justify-between border-b border-[#C9B78D]/50 pb-3">
+                  <span className="text-[9px] font-bold tracking-[0.18em] text-[#805C26]">REVIEW FILE</span>
+                  <FileCheck2 className="h-4 w-4 text-[#8E6A2A]" />
+                </div>
+                <div className="mt-3 space-y-2"><span className="block h-2 w-4/5 bg-[#6C5B48]/25" /><span className="block h-2 w-full bg-[#6C5B48]/15" /><span className="block h-2 w-2/3 bg-[#6C5B48]/15" /></div>
+                <div className="mt-4 flex items-center gap-2 text-[10px] font-semibold text-[#375C48]"><span className="h-2 w-2 rounded-full bg-[#55815F]" /> Traceable findings and review signals</div>
+              </div>
+              <div className="absolute bottom-8 right-7 hidden text-right text-[9px] font-bold tracking-[0.2em] text-white/75 md:block">SATYA · TECHNICAL EDUCATION REVIEW</div>
+            </div>
+          </div>
         </section>
 
         <section id="features" className="scroll-mt-28 space-y-5 py-2">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
             <div><p className="text-[10px] font-bold tracking-[0.24em] uppercase text-[#A27724]">One filing. Multiple checks.</p><h2 className="font-cinzel text-2xl md:text-3xl font-bold text-[#4A1504] mt-1">A clearer path to a trusted review</h2></div>
-            <p className="max-w-lg text-sm text-[#2B1609]/70">Motion-led cards introduce each stage, then connect directly to the existing audit workspace.</p>
           </div>
           <div ref={featureCardsRef} className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 perspective-1000">
             {[
@@ -586,7 +610,9 @@ export function App() {
             ))}
           </div>
         </section>
+        </>}
 
+        {currentPage === 'audit' && <>
             {/* PRIMARY INGESTION ZONE: PDF Upload & Drop Area */}
             <section id="audit" className="scroll-mt-28">
             <div className="p-6 md:p-8 rounded-3xl bg-white/80 backdrop-blur-md border-2 border-[#D4AF37]/50 shadow-xl space-y-6">
@@ -645,7 +671,7 @@ export function App() {
                       Drag &amp; drop your application PDF here, or <span className="underline decoration-[#D4AF37]">browse</span>
                     </div>
                     <p className="text-xs text-[#2B1609]/65">
-                  Upload an institutional application PDF to view the prototype scrutiny findings.
+                  Upload an institutional application PDF to view the audit findings.
                     </p>
                   </div>
                 )}
@@ -730,6 +756,7 @@ export function App() {
             <div ref={findingsRef}>
               {scrutinyResult && (
                 <DocumentFindingsView
+                  key={`${scrutinyResult.fileName}-${scrutinyResult.verdict}-${scrutinyResult.uploadedAt}`}
                   result={scrutinyResult}
                   onReset={() => {
                     setSelectedFile(null);
@@ -739,23 +766,45 @@ export function App() {
                 />
               )}
             </div>
-            <section id="about" className="scroll-mt-28 rounded-3xl bg-[#2B1609] text-[#F5E6C8] p-7 md:p-10 border border-[#D4AF37]/50 relative overflow-hidden">
+        </>}
+        {currentPage === 'about' && <section className="rounded-3xl bg-[#2B1609] text-[#F5E6C8] p-7 md:p-10 border border-[#D4AF37]/50 relative overflow-hidden space-y-7">
               <div className="absolute right-0 top-0 w-72 h-72 rounded-full border border-[#D4AF37]/20 translate-x-1/3 -translate-y-1/3" />
-              <p className="text-[10px] font-bold tracking-[0.24em] uppercase text-[#D4AF37]">About SATYA</p>
-              <h2 className="font-cinzel text-2xl md:text-3xl font-bold mt-2 max-w-2xl">Transparent signals for accountable technical education audits.</h2>
-              <p className="mt-4 max-w-3xl text-sm leading-relaxed text-[#F5E6C8]/75">SATYA — Smart Audit and Transparent Yield Authentication — is an AICTE compliance and document authentication project. It brings extraction, visual and cryptographic checks, regulatory reasoning, and audit reporting into one review flow. Automated signals support the scrutiny process; officers retain the context needed to review evidence and make decisions.</p>
-            </section>
-            <section id="faq" className="scroll-mt-28 space-y-4 py-2">
-              <div><p className="text-[10px] font-bold tracking-[0.24em] uppercase text-[#A27724]">Frequently asked</p><h2 className="font-cinzel text-2xl font-bold text-[#4A1504] mt-1">A few things to know</h2></div>
-              <div className="grid md:grid-cols-2 gap-3">
-                {[
-                  ['What can I review with SATYA?', 'Institutional application PDFs and supporting records such as land, faculty and infrastructure documents. The interface also includes sample audit demonstrations.'],
-                  ['Does an automated flag make the final decision?', 'No. SATYA presents evidence and rule-linked findings to support human scrutiny. A reviewer should interpret the results in context.'],
-                  ['What checks are represented?', 'Document layout extraction, visual forensics, source and signature validation, APH rule mapping, infrastructure evidence and audit reporting.'],
-                  ['How do I start?', 'Use the audit workspace to select a PDF or image, or run one of the provided sample demonstrations to explore the findings view.'],
-                ].map(([question, answer]) => <details key={question} className="group rounded-xl border border-[#D4AF37]/35 bg-white/65 px-5 py-4"><summary className="cursor-pointer list-none font-semibold text-sm text-[#4A1504] flex items-center justify-between gap-4">{question}<span className="text-[#A27724] transition-transform group-open:rotate-45">＋</span></summary><p className="pt-3 text-xs leading-relaxed text-[#2B1609]/75">{answer}</p></details>)}
+              <div className="relative max-w-4xl space-y-5">
+                <p className="text-[10px] font-bold tracking-[0.24em] uppercase text-[#D4AF37]">About SATYA</p>
+                <h1 className="font-cinzel text-3xl md:text-5xl font-bold">Smart Audit and Transparent Yield Authentication</h1>
+                <p className="text-base leading-relaxed text-[#F5E6C8]/80">SATYA is a document review and evidence organization system designed around the scrutiny of technical education institution filings. It brings documents, checks, and reviewer observations into one traceable workflow.</p>
+                <div className="grid md:grid-cols-2 gap-4 pt-3">
+                  {[
+                    ['Why SATYA exists', 'Institutional applications can contain many records and claims that must be compared across pages and evidence types. SATYA helps reviewers organize that work and see where attention may be needed.'],
+                    ['How a review works', 'A reviewer selects a filing, explores extracted information and available evidence checks, then examines the results across the audit workspace. Each signal should be interpreted alongside its source and limitations.'],
+                    ['Evidence in context', 'The workflow groups document analysis, visual forensics, source checks, APH rule mapping, infrastructure review, and audit trail information so that related observations are easier to inspect.'],
+                    ['Human accountability', 'Automated checks can assist triage, but a qualified reviewer remains responsible for validating evidence, resolving uncertainty, and making any formal decision.'],
+                  ].map(([title, body]) => <article key={title} className="rounded-2xl border border-[#D4AF37]/30 bg-white/5 p-5"><h2 className="font-cinzel text-lg font-bold text-[#F3D778]">{title}</h2><p className="mt-2 text-sm leading-relaxed text-[#F5E6C8]/75">{body}</p></article>)}
+                </div>
+                <p className="border-l-2 border-[#D4AF37] pl-4 text-sm leading-relaxed text-[#F5E6C8]/65">SATYA is not an official AICTE service. Its review signals do not constitute regulatory decisions or issuer verification.</p>
               </div>
-            </section>
+        </section>}
+        {currentPage === 'faq' && <section className="space-y-6 py-2">
+          <div><p className="text-[10px] font-bold tracking-[0.24em] uppercase text-[#A27724]">Frequently asked questions</p><h1 className="font-cinzel text-3xl md:text-4xl font-bold text-[#4A1504] mt-1">Understanding SATYA and its review workflow</h1><p className="mt-3 max-w-3xl text-sm leading-relaxed text-[#2B1609]/70">Answers about supported documents, evidence signals, reviewer responsibilities, and the current integration boundaries.</p></div>
+          <div className="grid md:grid-cols-2 gap-3">
+            {[
+              ['What is SATYA?', 'SATYA stands for Smart Audit and Transparent Yield Authentication. It is designed to organize review of technical education filings and present related evidence signals together.'],
+              ['Who is SATYA for?', 'The workflow is intended to support institutional filing review by authorized compliance teams and human reviewers.'],
+              ['What kinds of files can I review?', 'The audit workspace is designed for institutional application PDFs and supporting evidence such as land, faculty, building, and infrastructure records.'],
+              ['What happens when I analyze a document?', 'The workspace presents a staged review flow and findings view. The exact checks depend on the connected backend and evidence available for the selected file.'],
+              ['Are sample scenarios based on my uploaded file?', 'No. Sample scenarios are illustrative fixtures used to explore how findings may be displayed. They are separate from uploaded-file analysis.'],
+              ['Does a green result guarantee compliance?', 'No. A displayed status summarizes a particular check and its available evidence. It is not a guarantee of compliance or a formal regulatory decision.'],
+              ['Does SATYA make the final decision?', 'No. SATYA presents review signals and evidence for human scrutiny. A qualified officer must assess the context and make any formal decision.'],
+              ['Does SATYA connect to DigiLocker or issuer registries?', 'External issuer services are only verified when a real integration is configured and returns evidence. If not connected, the result should be shown as unavailable.'],
+              ['What does an unavailable check mean?', 'It means SATYA could not perform that check with the current configuration or evidence. Unavailable should not be interpreted as a pass or a failure.'],
+              ['What is the APH rules view?', 'It organizes potential relationships between application claims and Approval Process Handbook requirements, including references that reviewers can inspect.'],
+              ['How is infrastructure evidence reviewed?', 'The workspace can present visual and spatial evidence such as facility detections or floor-plan geometry. Findings depend on the input and should be confirmed by reviewers.'],
+              ['Can I print or share a report?', 'Where enabled, the report action formats the current review findings for inspection. Review the contents and limitations before using it outside the workspace.'],
+              ['Is SATYA an official AICTE service?', 'No. SATYA is a project and is not an official AICTE service. Its signals do not constitute regulatory decisions or issuer verification.'],
+              ['How do I try the workspace?', 'Open Audit workspace from the navigation, then choose an eligible document or select an illustrative sample scenario.'],
+            ].map(([question, answer]) => <details key={question} className="group rounded-xl border border-[#D4AF37]/35 bg-white/65 px-5 py-4"><summary className="cursor-pointer list-none font-semibold text-sm text-[#4A1504] flex items-center justify-between gap-4">{question}<span className="text-[#A27724] transition-transform group-open:rotate-45">＋</span></summary><p className="pt-3 text-xs leading-relaxed text-[#2B1609]/75">{answer}</p></details>)}
+          </div>
+        </section>}
       </main>
 
       {/* Official Printable Inspection Report Modal */}

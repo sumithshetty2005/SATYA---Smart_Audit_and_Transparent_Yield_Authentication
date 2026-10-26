@@ -68,10 +68,12 @@ export interface ScrutinyResult {
   };
   layer5: {
     cadTotalAreaSqm: number;
+    carpetAreaSqm: number;
     circulationRatio: number;
     nearestFireExitM: number;
     geofenceValid: boolean;
     gpsCoords: string;
+    gpsDistanceMeters: number;
     polygons: CADPolygon[];
     yoloDetections: YOLOAsset[];
   };
@@ -484,6 +486,7 @@ export const DocumentFindingsView: React.FC<Props> = ({
           claimedAcreage={result.layer3.claimedAcreage}
           institutionName={result.layer1.payload.institutionName}
           institutionId={result.layer1.payload.institutionCode}
+          scenarioResult={result.layer3}
         />
       )}
 
@@ -601,7 +604,7 @@ export const DocumentFindingsView: React.FC<Props> = ({
       )}
 
       {/* Tab Content: Layer 5 CAD & CV */}
-      {activeTab === 'layer5' && <Layer5VisionCV />}
+      {activeTab === 'layer5' && <Layer5VisionCV scenarioData={result.layer5} />}
 
       {/* Tab Content: Layer 6 Merkle Audit */}
       {activeTab === 'layer6' && (

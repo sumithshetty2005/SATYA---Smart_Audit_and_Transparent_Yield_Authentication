@@ -17,6 +17,17 @@ import type { InstitutionProfile, CADPolygon, YOLOAsset, EXIFGeoData } from '../
 
 interface Props {
   institution?: InstitutionProfile;
+  scenarioData?: {
+    cadTotalAreaSqm: number;
+    carpetAreaSqm: number;
+    circulationRatio: number;
+    nearestFireExitM: number;
+    geofenceValid: boolean;
+    gpsCoords: string;
+    gpsDistanceMeters: number;
+    polygons: CADPolygon[];
+    yoloDetections: YOLOAsset[];
+  };
   initialCADFile?: File | null;
   initialPhotoFile?: File | null;
 }
@@ -25,9 +36,18 @@ const BACKEND_BASE = '';
 
 export const Layer5VisionCV: React.FC<Props> = ({
   institution,
+  scenarioData,
 }) => {
   // Baseline data from institution or defaults
-  const defaultCad = institution?.layer5?.cadFloorPlan || {
+  const defaultCad = institution?.layer5?.cadFloorPlan || (scenarioData ? {
+    totalAreaSqm: scenarioData.cadTotalAreaSqm,
+    carpetAreaSqm: scenarioData.carpetAreaSqm,
+    circulationRatio: scenarioData.circulationRatio,
+    requiredCirculationRatio: 0.25,
+    nearestFireExitDistanceM: scenarioData.nearestFireExitM,
+    maxAllowedEgressDistanceM: 30,
+    polygons: scenarioData.polygons,
+  } : {
     totalAreaSqm: 0,
     carpetAreaSqm: 0,
     circulationRatio: 0,
@@ -35,9 +55,23 @@ export const Layer5VisionCV: React.FC<Props> = ({
     nearestFireExitDistanceM: 0,
     maxAllowedEgressDistanceM: 30.0,
     polygons: [],
-  };
+  });
 
-  const defaultExif: EXIFGeoData = institution?.layer5?.geotagPhoto || {
+  const coordinates = scenarioData?.gpsCoords.match(/(-?\d+(?:\.\d+)?)°?\s*N,\s*(-?\d+(?:\.\d+)?)°?\s*E/i);
+
+  const defaultExif: EXIFGeoData = institution?.layer5?.geotagPhoto || (scenarioData ? {
+    latitude: coordinates ? Number(coordinates[1]) : 0,
+    longitude: coordinates ? Number(coordinates[2]) : 0,
+    altitudeMeters: 0,
+    captureDevice: 'Illustrative scenario data',
+    timestamp: 'Scenario sample',
+    distanceFromPlotCentroidMeters: scenarioData.gpsDistanceMeters,
+    surveyToleranceMeters: 150,
+    geofenceValid: scenarioData.geofenceValid,
+    hasGPS: true,
+    geofenceStatus: scenarioData.geofenceValid ? 'VALID_SAMPLE' : 'GEOFENCE_EXCEEDED_SAMPLE',
+    streetAddress: scenarioData.gpsCoords,
+  } : {
     latitude: 0,
     longitude: 0,
     altitudeMeters: 0,
@@ -49,13 +83,13 @@ export const Layer5VisionCV: React.FC<Props> = ({
     hasGPS: false,
     geofenceStatus: 'NO_PHOTO',
     streetAddress: 'Not available - no photo uploaded',
-  };
+  });
 
-  const defaultYolo: YOLOAsset[] = institution?.layer5?.yoloDetections || [];
+  const defaultYolo: YOLOAsset[] = scenarioData?.yoloDetections || institution?.layer5?.yoloDetections || [];
 
   // Dynamic state populated from real backend API calls
   const [cadFloorPlan, setCadFloorPlan] = useState(defaultCad);
-  const [scaleAvailable, setScaleAvailable] = useState(Boolean(institution?.layer5?.cadFloorPlan));
+  const [scaleAvailable, setScaleAvailable] = useState(Boolean(scenarioData || institution?.layer5?.cadFloorPlan));
   const [geotagPhoto, setGeotagPhoto] = useState<EXIFGeoData>(defaultExif);
   const [yoloDetections, setYoloDetections] = useState<YOLOAsset[]>(defaultYolo);
 
@@ -72,7 +106,7 @@ export const Layer5VisionCV: React.FC<Props> = ({
   const [processingStage, setProcessingStage] = useState<string>('');
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [scaleAnnotation, setScaleAnnotation] = useState<string>(
-    institution?.layer5?.cadFloorPlan ? 'Simulated sample geometry' : 'Scale not supplied; measurements unavailable'
+    scenarioData ? 'Illustrative scenario geometry' : institution?.layer5?.cadFloorPlan ? 'Simulated sample geometry' : 'Scale not supplied; measurements unavailable'
   );
   const [merkleLeafHash, setMerkleLeafHash] = useState<string>('');
   const [advisoryNotes, setAdvisoryNotes] = useState<string[]>([]);
@@ -287,9 +321,9 @@ export const Layer5VisionCV: React.FC<Props> = ({
               Infrastructure Computer Vision & Spatial Geometry Module
             </h2>
             <p className="text-xs text-[#2B1609]/80 leading-relaxed max-w-3xl">
-              Extracts closed room polygon boundaries directly from architectural floor plans using Shapely,
-              cross-references camera hardware EXIF geotags with campus survey coordinates, and runs real
-              YOLOv8-nano inference to audit mandatory laboratory equipment.
+              {scenarioData
+                ? 'Illustrative sample geometry, geolocation, and equipment findings for the selected walkthrough. These values are prefilled examples, not measurements from an uploaded plan or photo.'
+                : 'Extracts room boundaries from supplied floor plans, reads available photo metadata, and can run equipment detection on uploaded facility images.'}
             </p>
           </div>
 
@@ -356,7 +390,7 @@ export const Layer5VisionCV: React.FC<Props> = ({
                 <Ruler className="w-5 h-5 text-[#4A1504]" />
                 <div>
                   <h3 className="font-cinzel font-bold text-sm text-[#4A1504]">
-                    Vector CAD Floor Plan Geometry (Shapely Engine)
+                    {scenarioData ? 'Illustrative Scenario Geometry' : 'Vector CAD Floor Plan Geometry (Shapely Engine)'}
                   </h3>
                   <span className="text-[10px] text-[#2B1609]/60 block font-mono">
                     {scaleAnnotation}
@@ -544,10 +578,10 @@ export const Layer5VisionCV: React.FC<Props> = ({
                 <Box className="w-5 h-5 text-[#4A1504]" />
                 <div>
                   <h3 className="font-cinzel font-bold text-sm text-[#4A1504]">
-                    YOLOv8 Facility Machinery & Safety Detection
+                    {scenarioData ? 'Illustrative Equipment Findings' : 'YOLOv8 Facility Machinery & Safety Detection'}
                   </h3>
                   <span className="text-[10px] text-[#2B1609]/60 block font-mono">
-                    Ultralytics YOLOv8n (COCO-80 Multi-Modal)
+                    {scenarioData ? 'Prefilled sample outputs · no image inference' : 'Ultralytics YOLOv8n (COCO-80 Multi-Modal)'}
                   </span>
                 </div>
               </div>
@@ -561,7 +595,12 @@ export const Layer5VisionCV: React.FC<Props> = ({
 
             {/* Live Lab Inspection Photo with YOLO Bounding Boxes */}
             <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border-2 border-[#D4AF37]/40 shadow-md bg-stone-900">
-              {/* If user uploaded a photo, display the actual image; otherwise show synthetic lab canvas */}
+              {scenarioData && !photoPreviewUrl && (
+                <span className="absolute left-3 top-3 z-30 rounded-md border border-amber-300/70 bg-black/80 px-2.5 py-1 text-[9px] font-bold tracking-wide text-amber-200">
+                  SAMPLE DETECTIONS · NO PHOTO UPLOADED
+                </span>
+              )}
+              {/* If user uploaded a photo, display it; scenario overlays are explicitly labeled as samples. */}
               {photoPreviewUrl ? (
                 <img
                   src={photoPreviewUrl}
@@ -573,7 +612,7 @@ export const Layer5VisionCV: React.FC<Props> = ({
                   <div className="absolute inset-0 opacity-25 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:16px_16px]" />
                   <Camera className="w-10 h-10 text-stone-600 mb-2" />
                   <span className="font-mono text-stone-400 text-xs text-center select-none max-w-xs">
-                    COMPUTER & MECHANICAL LAB FACILITY INSPECTION IMAGE (YOLOv8-NANO INGESTION)
+                    {scenarioData ? 'ILLUSTRATIVE FACILITY SCENARIO' : 'UPLOAD A FACILITY PHOTO TO VIEW IMAGE EVIDENCE'}
                   </span>
                 </div>
               )}

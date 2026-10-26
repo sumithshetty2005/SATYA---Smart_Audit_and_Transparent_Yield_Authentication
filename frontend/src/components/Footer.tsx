@@ -2,11 +2,11 @@ import React from 'react';
 import { ArrowUpRight, ShieldCheck } from 'lucide-react';
 
 const footerLinks = [
-  { href: '#home', label: 'Home' },
-  { href: '#features', label: 'Features' },
-  { href: '#audit', label: 'Audit workspace' },
-  { href: '#about', label: 'About SATYA' },
-  { href: '#faq', label: 'FAQ' },
+  { href: '/', label: 'Home' },
+  { href: '/#features', label: 'Features' },
+  { href: '/audit.html', label: 'Audit workspace' },
+  { href: '/about.html', label: 'About SATYA' },
+  { href: '/faq.html', label: 'FAQ' },
 ];
 
 export const Footer: React.FC = () => (
@@ -16,7 +16,7 @@ export const Footer: React.FC = () => (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-start">
         <div className="max-w-xl space-y-4">
-          <a href="#home" className="inline-flex items-center gap-3 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]">
+          <a href="/" className="inline-flex items-center gap-3 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#D4AF37] bg-[#4A1504]">
               <ShieldCheck className="h-6 w-6 text-[#D4AF37]" />
             </span>
@@ -26,10 +26,10 @@ export const Footer: React.FC = () => (
             </span>
           </a>
           <p className="text-sm leading-relaxed text-[#F5E6C8]/75">
-            A prototype for reviewing technical education documents, surfacing evidence gaps, and organizing audit signals for human review.
+            A document-review workspace for technical education filings. SATYA organizes evidence, surfaces review signals, and supports accountable human decisions.
           </p>
           <span className="inline-flex rounded-full border border-[#D4AF37]/40 bg-white/5 px-3 py-1 text-[10px] font-semibold tracking-wide text-[#F3D778]">
-            AICTE Problem Statement SH26261 · Demonstration prototype
+            AICTE Problem Statement SH26261
           </span>
         </div>
 
@@ -48,8 +48,8 @@ export const Footer: React.FC = () => (
       </div>
 
       <div className="mt-8 flex flex-col gap-3 border-t border-[#D4AF37]/20 pt-5 text-[11px] text-[#F5E6C8]/60 sm:flex-row sm:items-center sm:justify-between">
-        <p>© {new Date().getFullYear()} SATYA prototype. Built for project demonstration.</p>
-        <p className="max-w-2xl sm:text-right">Not an official AICTE service. Demo findings are illustrative and do not constitute regulatory decisions or issuer verification.</p>
+        <p>© {new Date().getFullYear()} SATYA · AICTE Problem Statement SH26261</p>
+        <p className="max-w-2xl sm:text-right">SATYA is not an official AICTE service. Its review signals do not constitute regulatory decisions or issuer verification.</p>
       </div>
     </div>
   </footer>

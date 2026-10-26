@@ -29,6 +29,16 @@ interface Props {
   claimedAcreage?: number;
   institutionName?: string;
   institutionId?: string;
+  scenarioResult?: {
+    digiLockerMatch: boolean;
+    authoritativeAcreage: number;
+    claimedAcreage: number;
+    pkiValid: boolean;
+    pkiSigner: string;
+    postSigningBytesAltered: boolean;
+    qrPayloadValid: boolean;
+    sourceTrustScore: number;
+  };
 }
 
 const BACKEND_BASE = '';
@@ -91,6 +101,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
   claimedAcreage: propClaimedAcreage,
   institutionName: propInstitutionName,
   institutionId: propInstitutionId,
+  scenarioResult,
 }) => {
   // Institution fallback data
   const instName =
@@ -256,7 +267,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
   const outcomeBadge = getOutcomeBadge(currentOutcome);
 
   // Compute live trust score
-  const computedTrustScore = currentOutcome === 'UNAVAILABLE' ? null : (
+  const computedTrustScore = scenarioResult?.sourceTrustScore ?? (currentOutcome === 'UNAVAILABLE' ? null : (
     currentOutcome === 'MATCH' && pkiData.digestMatch
       ? 96
       : currentOutcome === 'MATCH'
@@ -265,7 +276,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
       ? 34
       : currentOutcome === 'PENDING'
       ? 50
-      : 55);
+      : 55));
 
   return (
     <div className="space-y-6 font-sans-modern">
@@ -285,7 +296,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               Registry Verification Status
             </h2>
             <p className="text-xs text-[#2B1609]/80 leading-relaxed max-w-3xl">
-              Registry names are reference options only. No authorization, issuer lookup, token exchange, or signed source receipt is available in this prototype, so a match cannot be reported.
+              Registry names are reference options only. Authorization, issuer lookup, token exchange, and signed source receipts are not configured, so a match cannot be reported.
             </p>
           </div>
 
@@ -322,7 +333,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
                   : 'bg-red-50 text-red-800 border-red-300'
               }`}
             >
-              <span className="text-[10px] uppercase font-bold opacity-75 block">Trust Index</span>
+              <span className="text-[10px] uppercase font-bold opacity-75 block">{scenarioResult ? 'Scenario Trust Index' : 'Trust Index'}</span>
               <span className="font-mono font-extrabold text-lg">{computedTrustScore === null ? 'N/A' : `${computedTrustScore}%`}</span>
             </div>
           </div>
@@ -358,6 +369,42 @@ export const Layer3SourceVerification: React.FC<Props> = ({
           </div>
         )}
       </div>
+
+      {scenarioResult && (
+        <section className="rounded-2xl border border-[#D4AF37]/50 bg-[#FAF4E8] p-5 shadow-sm" aria-label="Illustrative scenario results">
+          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-cinzel text-sm font-bold text-[#4A1504]">Scenario Walkthrough Results</h3>
+              <p className="text-[11px] text-[#2B1609]/70">Illustrative sample values for this selected scenario; no issuer was contacted.</p>
+            </div>
+            <span className="w-fit rounded-full border border-[#D4AF37]/50 bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#7B5133]">Simulated scenario</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="rounded-xl border border-white bg-white/80 p-3 text-xs">
+              <span className="block text-[10px] font-semibold uppercase text-[#2B1609]/60">Registry comparison</span>
+              <strong className={scenarioResult.digiLockerMatch ? 'text-emerald-700' : 'text-red-700'}>{scenarioResult.digiLockerMatch ? 'MATCH · SAMPLE' : 'MISMATCH · SAMPLE'}</strong>
+              <span className="mt-1 block text-[10px] text-[#2B1609]/70">Claimed {scenarioResult.claimedAcreage} acres · reference {scenarioResult.authoritativeAcreage} acres</span>
+            </div>
+            <div className="rounded-xl border border-white bg-white/80 p-3 text-xs">
+              <span className="block text-[10px] font-semibold uppercase text-[#2B1609]/60">Digital signature</span>
+              <strong className={scenarioResult.pkiValid ? 'text-emerald-700' : 'text-red-700'}>{scenarioResult.pkiValid ? 'VALID · SAMPLE' : 'INVALID · SAMPLE'}</strong>
+              <span className="mt-1 block text-[10px] text-[#2B1609]/70">Signer: {scenarioResult.pkiSigner}</span>
+            </div>
+            <div className="rounded-xl border border-white bg-white/80 p-3 text-xs">
+              <span className="block text-[10px] font-semibold uppercase text-[#2B1609]/60">Post-signing changes</span>
+              <strong className={scenarioResult.postSigningBytesAltered ? 'text-red-700' : 'text-emerald-700'}>{scenarioResult.postSigningBytesAltered ? 'FLAGGED · SAMPLE' : 'NONE · SAMPLE'}</strong>
+            </div>
+            <div className="rounded-xl border border-white bg-white/80 p-3 text-xs">
+              <span className="block text-[10px] font-semibold uppercase text-[#2B1609]/60">QR payload</span>
+              <strong className={scenarioResult.qrPayloadValid ? 'text-emerald-700' : 'text-red-700'}>{scenarioResult.qrPayloadValid ? 'VALID · SAMPLE' : 'INVALID · SAMPLE'}</strong>
+            </div>
+            <div className="rounded-xl border border-white bg-white/80 p-3 text-xs">
+              <span className="block text-[10px] font-semibold uppercase text-[#2B1609]/60">Scenario trust score</span>
+              <strong className="font-mono text-[#4A1504]">{scenarioResult.sourceTrustScore}%</strong>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Main Grid: Returned Source Receipt & Verification Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -738,7 +785,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
                     DigiLocker OAuth connection unavailable
                   </h3>
                   <span className="text-xs text-[#2B1609]/70 font-semibold">
-                    This local prototype has no configured OAuth client
+                    SATYA has no configured OAuth client
                   </span>
                 </div>
               </div>
@@ -752,7 +799,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
 
             <div className="space-y-3 text-xs text-[#2B1609]">
               <p className="leading-relaxed">
-                No OAuth request will be sent from this prototype. A real client ID, approved redirect URI, credentials, and provider setup are required before consent or registry retrieval can be demonstrated.
+                No OAuth request will be sent. A real client ID, approved redirect URI, credentials, and provider setup are required before consent or registry retrieval can be enabled.
               </p>
 
               <div className="p-3.5 bg-white/80 rounded-2xl border border-[#D4AF37]/50 space-y-2 font-mono text-[11px]">
