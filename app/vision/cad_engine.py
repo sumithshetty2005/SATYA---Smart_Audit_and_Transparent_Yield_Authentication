@@ -118,9 +118,33 @@ class ArchitecturalCADEngine:
 
         scale_available = scale_meters_per_pt is not None
         if not scale_available:
-            # Default calibrated engineering baseline (1 pt ≈ 0.05m -> 1:140 drafting scale)
-            scale_meters_per_pt = 0.05
-            scale_source = "CALIBRATED_ENGINEERING_BASELINE"
+            page_count = len(doc)
+            doc.close()
+            return {
+                "success": True,
+                "processing_status": "SCALE_REQUIRED",
+                "method": "PYMUPDF_SHAPELY_VECTOR_ANALYSIS",
+                "evidence_location": f"Page {page_index + 1} of PDF",
+                "page_count": page_count,
+                "page_dimensions": {"width_pt": page_w, "height_pt": page_h},
+                "scale_info": {"scale_available": False, "scale_meters_per_pt": None, "scale_source": "NOT_FOUND"},
+                "cadFloorPlan": {
+                    "totalAreaSqm": 0.0,
+                    "carpetAreaSqm": 0.0,
+                    "circulationRatio": 0.0,
+                    "requiredCirculationRatio": self.norms["min_circulation_ratio"],
+                    "nearestFireExitDistanceM": None,
+                    "maxAllowedEgressDistanceM": self.norms["max_fire_egress_distance_m"],
+                    "polygons": [],
+                },
+                "advisory_flags": [],
+                "limitations": [
+                    "No drawing scale was found. Area, circulation, and egress measurements were not calculated.",
+                    "Supply a verified scale or request qualified manual review before making measurements.",
+                ],
+                "recommended_action": "Manual review required; do not infer area or compliance from this drawing.",
+                "merkle_leaf_hash": None,
+            }
 
         # Conversion factor from PDF points area to Square Meters
         # (points * scale_meters_per_pt)^2
@@ -150,36 +174,11 @@ class ArchitecturalCADEngine:
             poly = box(r.x0, r.y0, r.x1, r.y1)
             raw_polygons.append((poly, r))
 
-        # If vector drawings did not yield distinct room boxes, infer partitions from layout text blocks
-        if len(raw_polygons) < 3:
-            # Generate representative room grid based on page geometry and layout text
-            cell_w = page_w * 0.42
-            cell_h = page_h * 0.38
-            coords_grid = [
-                (page_w * 0.08, page_h * 0.10, cell_w, cell_h),
-                (page_w * 0.52, page_h * 0.10, cell_w, cell_h),
-                (page_w * 0.08, page_h * 0.54, cell_w, cell_h),
-                (page_w * 0.52, page_h * 0.54, cell_w, cell_h),
-            ]
-            for gx, gy, gw, gh in coords_grid:
-                r = fitz.Rect(gx, gy, gx + gw, gy + gh)
-                raw_polygons.append((box(r.x0, r.y0, r.x1, r.y1), r))
-
         # 5. Label and categorize rooms based on spatial text matching
         labeled_rooms: List[Dict[str, Any]] = []
         total_cad_area_sqm = 0.0
         carpet_area_sqm = 0.0
         circulation_area_sqm = 0.0
-
-        # Room types sequence fallback
-        fallback_types = [
-            ("Classroom 101 (Section A)", "INSTRUCTIONAL", 72.5),
-            ("Computer Science Lab 01", "INSTRUCTIONAL", 168.0),
-            ("Central Corridor & Passage", "CIRCULATION", 54.0),
-            ("Principal & Board Room", "ADMIN", 38.5),
-            ("Fire Escape Egress Vestibule", "FIRE_EGRESS", 28.0),
-            ("Student Amenities Restrooms", "AMENITY", 22.0),
-        ]
 
         # Process each polygon
         for idx, (poly, r) in enumerate(raw_polygons[:6]):
@@ -196,9 +195,8 @@ class ArchitecturalCADEngine:
             matched_text = " ".join(contained_texts).lower()
 
             # Determine category and name
-            fb_name, fb_cat, fb_default_area = fallback_types[idx % len(fallback_types)]
-            category = fb_cat
-            room_name = fb_name
+            category = "UNKNOWN"
+            room_name = f"Unlabelled zone {idx + 1}"
 
             if "lab" in matched_text or "computer" in matched_text:
                 category = "INSTRUCTIONAL"
@@ -221,9 +219,10 @@ class ArchitecturalCADEngine:
 
             # Compute area in Sq. Meters
             calculated_area_sqm = round(poly.area * area_scale_factor, 1)
-            # Ensure reasonable floor-plan scale magnitude if raw points are very high/low
-            if calculated_area_sqm < 15.0 or calculated_area_sqm > 500.0:
-                calculated_area_sqm = fb_default_area
+            # Do not replace implausible measurements with fabricated room defaults.
+            area_plausible = category != "UNKNOWN" and 15.0 <= calculated_area_sqm <= 500.0
+            if not area_plausible:
+                calculated_area_sqm = 0.0
 
             # Normalize coordinates to UI viewport SVG points string
             # e.g., "x1,y1 x2,y2 x3,y3 x4,y4"
@@ -235,9 +234,11 @@ class ArchitecturalCADEngine:
             svg_points = f"{vx0},{vy0} {vx1},{vy0} {vx1},{vy1} {vx0},{vy1}"
 
             # Evaluate APH Compliance status
-            status = "PASS"
-            compliance_note = "Area satisfies APH statutory norm."
-            if category == "INSTRUCTIONAL":
+            status = "UNASSESSED"
+            compliance_note = "No configured comparison for this room category; not assessed."
+            if area_plausible and category == "INSTRUCTIONAL":
+                status = "PASS"
+                compliance_note = "Area satisfies configured comparison threshold."
                 if "lab" in room_name.lower():
                     if calculated_area_sqm < self.norms["computer_lab_min_sqm"]:
                         status = "DEFICIENT"
@@ -252,7 +253,9 @@ class ArchitecturalCADEngine:
                             f"Classroom area {calculated_area_sqm} m² is below APH threshold "
                             f"of {self.norms['classroom_min_sqm']} m²."
                         )
-            elif category == "ADMIN":
+            elif area_plausible and category == "ADMIN":
+                status = "PASS"
+                compliance_note = "Area satisfies configured comparison threshold."
                 if calculated_area_sqm < self.norms["principal_office_min_sqm"]:
                     status = "DEFICIENT"
                     compliance_note = (
@@ -281,32 +284,20 @@ class ArchitecturalCADEngine:
             )
 
         # 6. Circulation ratio
-        circulation_ratio = (
-            round(circulation_area_sqm / max(1.0, total_cad_area_sqm), 3)
-            if total_cad_area_sqm > 0
-            else 0.268
-        )
-        if circulation_ratio < 0.15:
-            circulation_ratio = 0.268
+        circulation_ratio = round(circulation_area_sqm / total_cad_area_sqm, 3) if total_cad_area_sqm > 0 else 0.0
 
-        # 7. Nearest fire exit distance (approximate from furthest room centroid to egress)
-        # Using 24.5 meters as baseline
-        nearest_fire_exit_m = 24.5
+        # Egress routing requires explicit exit geometry and remains unmeasured here.
+        nearest_fire_exit_m = None
 
         # 8. Advisory Limitations & Notes
         limitations: List[str] = []
-        if not scale_available:
-            limitations.append(
-                "Drawing scale is not annotated on PDF page; calibrated baseline used. "
-                "Official manual architect verification recommended."
-            )
-        else:
-            limitations.append(f"Scale detected from text annotations ({scale_source}).")
+        limitations.append(f"Scale detected from text annotations ({scale_source}).")
+        if not labeled_rooms:
+            limitations.append("No room polygons could be extracted from the supplied vector drawing.")
+        limitations.append("Fire egress distance is not calculated by this prototype.")
 
         # 9. Merkle Leaf Hash computation
-        digest_preimage = (
-            f"LAYER5_CAD:{len(labeled_rooms)}:{total_cad_area_sqm}:{circulation_ratio}:{nearest_fire_exit_m}"
-        )
+        digest_preimage = f"LAYER5_CAD:{hashlib.sha256(pdf_bytes).hexdigest()}:{page_index}:{scale_source}"
         merkle_leaf_hash = hashlib.sha256(digest_preimage.encode()).hexdigest()
 
         return {
@@ -335,7 +326,7 @@ class ArchitecturalCADEngine:
             ],
             "limitations": limitations,
             "recommended_action": (
-                "Review room polygons in Interactive Canvas. All automated findings are advisory."
+                "Review extracted room polygons in the interactive canvas. Measurements are advisory; egress distance requires a separate verified method."
             ),
             "merkle_leaf_hash": merkle_leaf_hash,
         }

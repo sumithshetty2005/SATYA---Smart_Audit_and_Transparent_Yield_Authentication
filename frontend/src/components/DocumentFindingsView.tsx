@@ -119,6 +119,10 @@ export const DocumentFindingsView: React.FC<Props> = ({
 
   return (
     <div className="space-y-6 font-sans-modern scroll-mt-6" id="findings-section">
+      <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-950">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <p><strong>Simulated showcase scenario.</strong> This illustrative clean/tampered example is not generated from the selected upload and does not represent live AICTE, DigiLocker, registry, or issuer verification.</p>
+      </div>
       {/* Findings Header Banner */}
       <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-md border-2 border-[#D4AF37]/50 shadow-xl relative overflow-hidden">
         {/* Subtle Mandala Watermark */}

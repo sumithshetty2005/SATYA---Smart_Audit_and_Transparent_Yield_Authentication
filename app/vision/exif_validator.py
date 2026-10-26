@@ -14,7 +14,6 @@ from __future__ import annotations
 import hashlib
 import io
 import math
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from PIL import ExifTags, Image
@@ -95,8 +94,8 @@ class PhotoEXIFValidator:
         self,
         image_input: Union[str, bytes, io.BytesIO],
         filename: str = "infrastructure_photo.jpg",
-        declared_latitude: float = 18.5204,
-        declared_longitude: float = 73.8567,
+        declared_latitude: Optional[float] = None,
+        declared_longitude: Optional[float] = None,
         survey_tolerance_meters: float = 150.0,
     ) -> Dict[str, Any]:
         """Extracts EXIF metadata, evaluates GPS distance, and returns advisory verdict."""
@@ -129,35 +128,31 @@ class PhotoEXIFValidator:
         lat = 0.0
         lon = 0.0
         alt = 0.0
-        distance_meters = 0.0
-        geofence_valid = False
+        distance_meters: Optional[float] = None
+        geofence_valid: Optional[bool] = None
         geofence_status: str
 
         if has_gps:
             lat = _dms_to_decimal(gps_tags.get("GPSLatitude"), gps_tags.get("GPSLatitudeRef", "N"))
             lon = _dms_to_decimal(gps_tags.get("GPSLongitude"), gps_tags.get("GPSLongitudeRef", "E"))
             alt = _to_float(gps_tags.get("GPSAltitude", 0.0))
-
-            distance_meters = calculate_haversine_distance(
-                declared_latitude, declared_longitude, lat, lon
-            )
-            geofence_valid = distance_meters <= survey_tolerance_meters
-            geofence_status = "VALID" if geofence_valid else "GEOFENCE_EXCEEDED"
+            if declared_latitude is not None and declared_longitude is not None:
+                distance_meters = calculate_haversine_distance(
+                    declared_latitude, declared_longitude, lat, lon
+                )
+                geofence_valid = distance_meters <= survey_tolerance_meters
+                geofence_status = "VALID" if geofence_valid else "GEOFENCE_EXCEEDED"
+            else:
+                geofence_status = "REFERENCE_LOCATION_UNAVAILABLE"
         else:
-            # Fallback baseline coordinates with inconclusive indicator
-            lat = declared_latitude
-            lon = declared_longitude
-            alt = 560.0
-            distance_meters = 42.5  # Nominal within-tolerance demo value
-            geofence_valid = True
             geofence_status = "INCONCLUSIVE_NO_GPS"
 
         # Hardware and Capture metadata
         make = str(parsed_tags.get("Make", "")).strip()
         model = str(parsed_tags.get("Model", "")).strip()
-        capture_device = f"{make} {model}".strip() if make or model else "Digital Imaging Sensor (EXIF Generic)"
+        capture_device = f"{make} {model}".strip() if make or model else "Not present in image metadata"
 
-        capture_timestamp = str(parsed_tags.get("DateTimeOriginal") or parsed_tags.get("DateTime") or datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
+        capture_timestamp = str(parsed_tags.get("DateTimeOriginal") or parsed_tags.get("DateTime") or "Not present in image metadata")
         software = str(parsed_tags.get("Software", "")).strip()
 
         # Software tampering / editing check
@@ -184,13 +179,13 @@ class PhotoEXIFValidator:
             "VALID_IN_BOUNDS"
             if (has_gps and geofence_valid)
             else "INCONCLUSIVE"
-            if not has_gps
+            if not has_gps or geofence_valid is None
             else "OUT_OF_BOUNDS_ADVISORY"
         )
 
         # Merkle leaf digest
         digest_preimage = (
-            f"LAYER5_EXIF:{filename}:{lat:.5f}:{lon:.5f}:{distance_meters:.1f}:{geofence_status}"
+            f"LAYER5_EXIF:{filename}:{lat:.5f}:{lon:.5f}:{distance_meters}:{geofence_status}"
         )
         merkle_leaf_hash = hashlib.sha256(digest_preimage.encode()).hexdigest()
 
@@ -202,24 +197,27 @@ class PhotoEXIFValidator:
             "has_exif": has_exif,
             "has_gps": has_gps,
             "geotagPhoto": {
+                "hasGPS": has_gps,
                 "latitude": round(lat, 5),
                 "longitude": round(lon, 5),
                 "altitudeMeters": round(alt, 1),
                 "captureDevice": capture_device,
                 "timestamp": capture_timestamp,
-                "distanceFromPlotCentroidMeters": round(distance_meters, 1),
+                "distanceFromPlotCentroidMeters": round(distance_meters, 1) if distance_meters is not None else None,
                 "surveyToleranceMeters": survey_tolerance_meters,
                 "geofenceValid": geofence_valid,
                 "geofenceStatus": geofence_status,
                 "streetAddress": (
-                    f"Institutional Campus Plot, Survey-42/1B, Lat {lat:.4f}°N, Lon {lon:.4f}°E"
+                    f"GPS coordinates extracted; address not resolved ({lat:.4f}, {lon:.4f})"
+                    if has_gps
+                    else "Not available - no GPS metadata"
                 ),
             },
             "declared_campus_centroid": {
                 "latitude": declared_latitude,
                 "longitude": declared_longitude,
             },
-            "software_tag": software if software else "Camera Native Firmware",
+            "software_tag": software if software else "Not present in image metadata",
             "software_editing_flag": software_tampered,
             "advisory_verdict": advisory_verdict,
             "limitations": limitations,

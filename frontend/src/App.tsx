@@ -1,9 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { gsap } from 'gsap';
 import { ThreeBackground } from './components/ThreeBackground';
 import { DocumentFindingsView, type ScrutinyResult } from './components/DocumentFindingsView';
 import { OfficialInspectionReportModal } from './components/OfficialInspectionReportModal';
 import { SpecificationsModal } from './components/SpecificationsModal';
 import { Footer } from './components/Footer';
+import { PrototypePacketReview, type PrototypePacketReviewData } from './components/PrototypePacketReview';
 import {
   UploadCloud,
   FileCheck2,
@@ -28,6 +30,8 @@ export function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStep, setAnalysisStep] = useState<number>(0);
   const [scrutinyResult, setScrutinyResult] = useState<ScrutinyResult | null>(null);
+  const [prototypeReview, setPrototypeReview] = useState<PrototypePacketReviewData | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   // Modals
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -35,20 +39,40 @@ export function App() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const findingsRef = useRef<HTMLDivElement>(null);
+  const featureCardsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const cards = featureCardsRef.current?.querySelectorAll<HTMLElement>('.satya-feature-card');
+    if (!cards?.length) return;
+    const animations = gsap.fromTo(cards,
+      { y: 48, opacity: 0, rotateX: 8 },
+      { y: 0, opacity: 1, rotateX: 0, duration: 0.75, stagger: 0.12, ease: 'power3.out', paused: true }
+    );
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        animations.play();
+        observer.disconnect();
+      }
+    }, { threshold: 0.18 });
+    observer.observe(featureCardsRef.current!);
+    return () => { observer.disconnect(); animations.kill(); };
+  }, []);
 
   const steps = [
-    { label: 'Layer 1: LayoutLMv3 Token Extraction & 2D Bounding Boxes', icon: <FileText className="w-4 h-4" /> },
-    { label: 'Layer 2: Error Level Analysis (ELA) & Laplacian Smoothing Check', icon: <Fingerprint className="w-4 h-4" /> },
-    { label: 'Layer 3: DigiLocker Registry API & PKI X.509 DSC Validator', icon: <Database className="w-4 h-4" /> },
-    { label: 'Layer 4: Neo4j Knowledge Graph & APH 2024–27 Multi-Agent Rules', icon: <Network className="w-4 h-4" /> },
-    { label: 'Layer 5: Shapely CAD Spatial Geometry & YOLOv11 Machinery Grid', icon: <Eye className="w-4 h-4" /> },
-    { label: 'Layer 6: SHA-256 Merkle Block Hash Sealing & Digest Generation', icon: <Scroll className="w-4 h-4" /> },
+    { label: 'PDF page inventory', icon: <FileText className="w-4 h-4" /> },
+    { label: 'Synthetic packet identification', icon: <Fingerprint className="w-4 h-4" /> },
+    { label: 'Cross-document comparisons', icon: <Network className="w-4 h-4" /> },
+    { label: 'Supporting evidence review', icon: <Eye className="w-4 h-4" /> },
+    { label: 'External checks marked unavailable', icon: <Database className="w-4 h-4" /> },
+    { label: 'Advisory summary prepared', icon: <Scroll className="w-4 h-4" /> },
   ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
       setScrutinyResult(null);
+      setPrototypeReview(null);
+      setReviewError(null);
     }
   };
 
@@ -67,10 +91,44 @@ export function App() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       setSelectedFile(e.dataTransfer.files[0]);
       setScrutinyResult(null);
+      setPrototypeReview(null);
+      setReviewError(null);
+    }
+  };
+
+  const reviewUploadedPacket = async () => {
+    if (!selectedFile) {
+      setReviewError('Choose the synthetic packet PDF before starting the prototype review.');
+      return;
+    }
+    setIsAnalyzing(true);
+    setAnalysisStep(0);
+    setReviewError(null);
+    setPrototypeReview(null);
+    setScrutinyResult(null);
+    const progressTimer = window.setInterval(() => {
+      setAnalysisStep((step) => Math.min(step + 1, steps.length - 1));
+    }, 450);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      const response = await fetch('/api/v1/prototype/review-packet', { method: 'POST', body: formData });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || 'The prototype review could not read this PDF.');
+      setPrototypeReview(payload as PrototypePacketReviewData);
+      window.setTimeout(() => findingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    } catch (error) {
+      setReviewError(error instanceof Error ? error.message : 'Could not reach the SATYA prototype review service.');
+    } finally {
+      window.clearInterval(progressTimer);
+      setIsAnalyzing(false);
     }
   };
 
   const executeScrutinyAnalysis = (isTamperedDemo: boolean = false) => {
+    setPrototypeReview(null);
+    setReviewError(null);
     setIsAnalyzing(true);
     setAnalysisStep(0);
 
@@ -418,21 +476,21 @@ export function App() {
             <div className="w-1/3 bg-[#138808]" />
           </div>
           <span className="font-medium tracking-wide">
-            Problem Statement SH26261 • AICTE Regulatory Scrutiny & Document Authentication Engine
+            SATYA prototype • AICTE compliance and document-review concept
           </span>
           <span className="hidden md:inline text-[#D4AF37]">•</span>
           <span className="hidden md:inline text-[#F5E6C8]/80 font-mono">
-            APH 2024–2027 Gazette v4.2 Active
+            Rules assessment not run for synthetic packet reviews
           </span>
         </div>
 
-        <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5 text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-mono text-[10px]">DigiLocker Sandbox: CONNECTED</span>
+          <div className="flex items-center gap-3 text-xs">
+          <div className="flex items-center gap-1.5 text-amber-300">
+            <span className="w-2 h-2 rounded-full bg-amber-300" />
+            <span className="font-mono text-[10px]">Issuer services: NOT CONNECTED</span>
           </div>
           <span className="text-[#D4AF37]/50">|</span>
-          <span className="font-mono text-[10px] text-[#F5E6C8]/75">Merkle Ledger: SYNCED</span>
+          <span className="font-mono text-[10px] text-[#F5E6C8]/75">Demo data: SYNTHETIC</span>
         </div>
       </div>
 
@@ -441,50 +499,51 @@ export function App() {
         <div className="h-1.5 w-full bg-gradient-to-r from-[#4A1504] via-[#D4AF37] to-[#4A1504] opacity-90" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 group cursor-pointer" onClick={() => setScrutinyResult(null)}>
-            <div className="w-12 h-12 rounded-full p-1 bg-gradient-to-br from-[#FFF3B0] to-[#EEDFB8] border border-[#D4AF37]/60 shadow-sm flex items-center justify-center overflow-hidden transition-transform duration-300 group-hover:scale-105 shrink-0">
-              <img
-                src="/assets/aicte_logo_crop.png"
-                alt="AICTE Crest"
-                className="w-full h-full object-contain"
-              />
+          <a href="#home" className="flex items-center gap-3.5 group shrink-0" onClick={() => setScrutinyResult(null)}>
+            <div className="satya-mark w-12 h-12 rounded-2xl bg-[#4A1504] border border-[#D4AF37] shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:rotate-[-6deg] group-hover:scale-105 shrink-0">
+              <ShieldCheck className="w-7 h-7 text-[#D4AF37]" />
             </div>
             <div className="flex flex-col">
-              <span className="font-vedic text-[11px] font-semibold tracking-wider text-[#4A1504] uppercase">
-                अखिल भारतीय तकनीकी शिक्षा परिषद
-              </span>
-              <span className="font-cinzel text-base sm:text-lg font-extrabold tracking-tight text-[#4A1504]">
-                AICTE <span className="text-[#C59B27] font-sans-modern font-semibold text-xs sm:text-sm">Compliance Engine</span>
-              </span>
+              <span className="font-cinzel text-lg sm:text-xl font-extrabold tracking-tight text-[#4A1504]">SATYA</span>
+              <span className="text-[9px] sm:text-[10px] font-semibold tracking-wide text-[#7B5133]">Smart Audit &amp; Transparent Yield Authentication</span>
             </div>
-          </div>
+          </a>
+
+          <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-5 text-xs font-bold text-[#4A1504]">
+            <a href="#home" className="hover:text-[#C59B27] transition-colors">Home</a>
+            <a href="#features" className="hover:text-[#C59B27] transition-colors">Features</a>
+            <a href="#audit" className="hover:text-[#C59B27] transition-colors">Audit workspace</a>
+            <a href="#about" className="hover:text-[#C59B27] transition-colors">About</a>
+            <a href="#faq" className="hover:text-[#C59B27] transition-colors">FAQ</a>
+          </nav>
 
           <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => setIsSpecsModalOpen(true)}
-              className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white/70 hover:bg-[#F5E6C8] border border-[#D4AF37]/50 text-[#4A1504] transition-all cursor-pointer"
-            >
-              <Award className="w-4 h-4 text-[#D4AF37]" />
-              <span>PS SH26261 Specs</span>
-            </button>
-
+            <a href="#audit" className="px-4 py-2 rounded-xl text-xs font-bold bg-[#4A1504] text-[#FFF3B0] hover:shadow-lg border border-[#D4AF37]/60 transition-all">Start an audit <ArrowRight className="inline w-3.5 h-3.5 ml-1" /></a>
             {scrutinyResult && (
               <button
                 onClick={() => setIsReportModalOpen(true)}
-                className="px-4 py-2 rounded-xl text-xs font-cinzel font-bold bg-[#4A1504] hover:bg-[#2B1609] text-[#F5E6C8] border border-[#D4AF37]/50 flex items-center gap-2 transition-all shadow-md cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-cinzel font-bold bg-[#4A1504] hover:bg-[#2B1609] text-[#F5E6C8] border border-[#D4AF37]/50 items-center gap-2 transition-all shadow-md cursor-pointer hidden xl:flex"
               >
                 <ShieldCheck className="w-4 h-4 text-[#D4AF37]" />
                 <span>Inspection Order</span>
               </button>
             )}
+            <button
+              onClick={() => setIsSpecsModalOpen(true)}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/70 hover:bg-[#F5E6C8] border border-[#D4AF37]/50 text-[#4A1504] transition-all cursor-pointer"
+              title="Project specifications"
+            >
+              <Award className="w-4 h-4 text-[#D4AF37]" />
+              <span>Specs</span>
+            </button>
           </div>
         </div>
       </header>
 
       {/* Main Landing & Scrutiny Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-8 relative z-10 space-y-10">
-        {/* Landing Page Hero Banner */}
-        <div className="relative rounded-3xl overflow-hidden border-2 border-[#D4AF37]/60 bg-gradient-to-br from-[#FAF4E8] via-[#F5E6C8] to-[#EEDFB8] p-6 md:p-10 shadow-2xl">
+        {/* Home / Landing Page Hero Banner */}
+        <section id="home" className="scroll-mt-28 relative rounded-3xl overflow-hidden border-2 border-[#D4AF37]/60 bg-gradient-to-br from-[#FAF4E8] via-[#F5E6C8] to-[#EEDFB8] p-6 md:p-10 shadow-2xl">
               {/* Sacred Mandala Watermark */}
               <div
                 className="absolute -right-20 -bottom-20 w-96 h-96 pointer-events-none opacity-15 bg-contain bg-no-repeat"
@@ -499,13 +558,12 @@ export function App() {
                   </div>
 
                   <h1 className="font-cinzel text-3xl md:text-5xl font-bold text-[#4A1504] tracking-wide leading-tight">
-                    AI-Powered Application Validation <br />
-                    <span className="text-[#2B1609] italic font-serif">&amp; Document Authentication</span>
+                    Trust, verified at every layer. <br />
+                    <span className="text-[#2B1609] italic font-serif">Smart document authentication</span>
                   </h1>
 
                   <p className="text-sm md:text-base text-[#2B1609]/85 leading-relaxed max-w-2xl font-serif">
-                    Upload any AICTE approval application, land title deed, or infrastructure completion certificate (PDF) to run 
-                    instant multi-layer forensic inspection, LayoutLMv3 tokenization, DigiLocker cross-checks, and APH 2024–2027 rule validation.
+                    SATYA helps review AICTE institutional filings through document extraction, visual forensics, source checks and Approval Process Handbook rule validation — with findings designed to be traceable and reviewable.
                   </p>
 
                   {/* Baudhayana Shulba Sutras Shloka Callout */}
@@ -535,7 +593,7 @@ export function App() {
                       />
                     </div>
                     <div>
-                      <h3 className="font-cinzel font-bold text-sm text-[#4A1504]">Automated Regulatory Audit</h3>
+                    <h3 className="font-cinzel font-bold text-sm text-[#4A1504]">SATYA verification pipeline</h3>
                       <p className="text-[11px] text-[#2B1609]/75 mt-0.5">
                         LayoutLMv3 • ELA Forensics • DigiLocker • Neo4j GraphRAG • Merkle Ledger
                       </p>
@@ -543,9 +601,33 @@ export function App() {
                   </div>
                 </div>
               </div>
-            </div>
+        </section>
+
+        <section id="features" className="scroll-mt-28 space-y-5 py-2">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+            <div><p className="text-[10px] font-bold tracking-[0.24em] uppercase text-[#A27724]">One filing. Multiple checks.</p><h2 className="font-cinzel text-2xl md:text-3xl font-bold text-[#4A1504] mt-1">A clearer path to a trusted review</h2></div>
+            <p className="max-w-lg text-sm text-[#2B1609]/70">Motion-led cards introduce each stage, then connect directly to the existing audit workspace.</p>
+          </div>
+          <div ref={featureCardsRef} className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 perspective-1000">
+            {[
+              { n: '01', title: 'Read the document', icon: <FileText />, text: 'Extract structured fields and layout signals from institutional applications and supporting records.', tag: 'LAYOUT ANALYSIS', visual: 'scan' },
+              { n: '02', title: 'Inspect for alterations', icon: <Fingerprint />, text: 'Surface image inconsistencies and suspicious edits for a reviewer to examine.', tag: 'VISUAL FORENSICS', visual: 'forensic' },
+              { n: '03', title: 'Verify the source', icon: <Database />, text: 'Check available signatures, QR references and provenance signals against authoritative records.', tag: 'SOURCE CHECKS', visual: 'verify' },
+              { n: '04', title: 'Compare with APH rules', icon: <Network />, text: 'Connect application facts to applicable Approval Process Handbook requirements and citations.', tag: 'RULE MAPPING', visual: 'graph' },
+              { n: '05', title: 'Review infrastructure', icon: <Eye />, text: 'Bring spatial and visual evidence into view to help assess facilities and declared resources.', tag: 'EVIDENCE REVIEW', visual: 'evidence' },
+              { n: '06', title: 'Seal the audit trail', icon: <ShieldCheck />, text: 'Present findings in a consolidated report with integrity signals for accountable review.', tag: 'AUDIT REPORTING', visual: 'ledger' },
+            ].map((feature) => (
+              <article key={feature.n} className={`satya-feature-card satya-card-${feature.visual} glass-parchment-gold rounded-2xl p-5 min-h-[240px] relative overflow-hidden group`}>
+                <div className="satya-card-visual" aria-hidden="true"><span className="satya-orbit" /><span className="satya-signal" /></div>
+                <div className="relative z-10 flex items-start justify-between"><span className="w-10 h-10 rounded-xl bg-[#4A1504] text-[#D4AF37] flex items-center justify-center">{React.cloneElement(feature.icon, { className: 'w-5 h-5' })}</span><span className="text-xs font-mono text-[#9A752E]">{feature.n}</span></div>
+                <div className="relative z-10 mt-8"><p className="text-[9px] font-bold tracking-[0.2em] text-[#9A752E]">{feature.tag}</p><h3 className="font-cinzel text-lg font-bold text-[#4A1504] mt-1">{feature.title}</h3><p className="text-xs leading-relaxed text-[#2B1609]/75 mt-2 max-w-sm">{feature.text}</p></div>
+              </article>
+            ))}
+          </div>
+        </section>
 
             {/* PRIMARY INGESTION ZONE: PDF Upload & Drop Area */}
+            <section id="audit" className="scroll-mt-28">
             <div className="p-6 md:p-8 rounded-3xl bg-white/80 backdrop-blur-md border-2 border-[#D4AF37]/50 shadow-xl space-y-6">
               <div className="text-center space-y-2 max-w-2xl mx-auto">
                 <h2 className="font-cinzel font-bold text-xl md:text-2xl text-[#4A1504]">
@@ -574,7 +656,7 @@ export function App() {
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileChange}
-                  accept=".pdf,.png,.jpg,.jpeg"
+                  accept=".pdf"
                   className="hidden"
                 />
 
@@ -602,7 +684,7 @@ export function App() {
                       Drag &amp; drop your application PDF here, or <span className="underline decoration-[#D4AF37]">browse</span>
                     </div>
                     <p className="text-xs text-[#2B1609]/65">
-                      Supported formats: PDF documents (.pdf), high-resolution municipal scans (.png, .jpg)
+                  Prototype review supports the supplied synthetic test packet PDF. Other PDFs are inventoried without generated findings.
                     </p>
                   </div>
                 )}
@@ -619,7 +701,7 @@ export function App() {
                     className="px-3 py-1.5 rounded-xl bg-white border border-[#D4AF37]/50 hover:bg-[#FAF4E8] text-[#4A1504] font-medium transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Standard Compliant Filing (Clean)</span>
+                    <span>Positive scenario (simulated fixture)</span>
                   </button>
                   <button
                     type="button"
@@ -628,17 +710,17 @@ export function App() {
                     className="px-3 py-1.5 rounded-xl bg-white border border-red-300 hover:bg-red-50 text-red-900 font-medium transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
                   >
                     <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                    <span>Altered Title Deed (Tampered ELA Demo)</span>
+                    <span>Risk scenario (simulated fixture)</span>
                   </button>
                 </div>
 
                 <button
-                  onClick={() => executeScrutinyAnalysis(false)}
-                  disabled={isAnalyzing}
+                  onClick={reviewUploadedPacket}
+                  disabled={isAnalyzing || !selectedFile}
                   className="w-full md:w-auto px-6 py-3 bg-[#4A1504] hover:bg-[#2B1609] text-[#F5E6C8] rounded-xl text-xs font-cinzel font-bold tracking-wider shadow-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Cpu className="w-4 h-4 text-[#D4AF37]" />
-                  <span>{isAnalyzing ? 'Executing AI Scrutiny...' : 'Analyze Document & View Findings'}</span>
+                  <span>{isAnalyzing ? 'Reviewing synthetic packet...' : 'Review uploaded PDF (prototype)'}</span>
                   <ArrowRight className="w-4 h-4 text-[#D4AF37]" />
                 </button>
               </div>
@@ -649,7 +731,7 @@ export function App() {
                   <div className="flex items-center justify-between text-xs font-bold text-[#4A1504]">
                     <span className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#4A1504] animate-ping" />
-                      <span>Processing Multi-Layer Regulatory Pipeline...</span>
+                      <span>Running the fixture-based prototype review...</span>
                     </span>
                     <span className="font-mono">Step {analysisStep + 1} of {steps.length}</span>
                   </div>
@@ -681,9 +763,12 @@ export function App() {
                 </div>
               )}
             </div>
+            </section>
 
             {/* REVEALED FINDINGS WORKSPACE */}
-            <div ref={findingsRef}>
+            <div ref={findingsRef} className="scroll-mt-28 space-y-6">
+              {reviewError && <div role="alert" className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">{reviewError} <span className="block text-xs mt-1">Confirm the FastAPI server is running, then retry.</span></div>}
+              {prototypeReview && <PrototypePacketReview review={prototypeReview} onReset={() => { setPrototypeReview(null); setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} />}
               {scrutinyResult && (
                 <DocumentFindingsView
                   result={scrutinyResult}
@@ -695,6 +780,23 @@ export function App() {
                 />
               )}
             </div>
+            <section id="about" className="scroll-mt-28 rounded-3xl bg-[#2B1609] text-[#F5E6C8] p-7 md:p-10 border border-[#D4AF37]/50 relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-72 h-72 rounded-full border border-[#D4AF37]/20 translate-x-1/3 -translate-y-1/3" />
+              <p className="text-[10px] font-bold tracking-[0.24em] uppercase text-[#D4AF37]">About SATYA</p>
+              <h2 className="font-cinzel text-2xl md:text-3xl font-bold mt-2 max-w-2xl">Transparent signals for accountable technical education audits.</h2>
+              <p className="mt-4 max-w-3xl text-sm leading-relaxed text-[#F5E6C8]/75">SATYA — Smart Audit and Transparent Yield Authentication — is an AICTE compliance and document authentication project. It brings extraction, visual and cryptographic checks, regulatory reasoning, and audit reporting into one review flow. Automated signals support the scrutiny process; officers retain the context needed to review evidence and make decisions.</p>
+            </section>
+            <section id="faq" className="scroll-mt-28 space-y-4 py-2">
+              <div><p className="text-[10px] font-bold tracking-[0.24em] uppercase text-[#A27724]">Frequently asked</p><h2 className="font-cinzel text-2xl font-bold text-[#4A1504] mt-1">A few things to know</h2></div>
+              <div className="grid md:grid-cols-2 gap-3">
+                {[
+                  ['What can I review with SATYA?', 'Institutional application PDFs and supporting records such as land, faculty and infrastructure documents. The interface also includes sample audit demonstrations.'],
+                  ['Does an automated flag make the final decision?', 'No. SATYA presents evidence and rule-linked findings to support human scrutiny. A reviewer should interpret the results in context.'],
+                  ['What checks are represented?', 'Document layout extraction, visual forensics, source and signature validation, APH rule mapping, infrastructure evidence and audit reporting.'],
+                  ['How do I start?', 'Use the audit workspace to select a PDF or image, or run one of the provided sample demonstrations to explore the findings view.'],
+                ].map(([question, answer]) => <details key={question} className="group rounded-xl border border-[#D4AF37]/35 bg-white/65 px-5 py-4"><summary className="cursor-pointer list-none font-semibold text-sm text-[#4A1504] flex items-center justify-between gap-4">{question}<span className="text-[#A27724] transition-transform group-open:rotate-45">＋</span></summary><p className="pt-3 text-xs leading-relaxed text-[#2B1609]/75">{answer}</p></details>)}
+              </div>
+            </section>
       </main>
 
       {/* Official Printable Inspection Report Modal */}

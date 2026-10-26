@@ -184,7 +184,7 @@ export interface CADPolygon {
   areaSqm: number;
   calculatedBy: string;
   points: string; // SVG polygon string
-  status: 'COMPLIANT' | 'DEFICIENT' | 'PASS';
+  status: 'COMPLIANT' | 'DEFICIENT' | 'PASS' | 'UNASSESSED';
 }
 
 export interface EXIFGeoData {
@@ -193,9 +193,11 @@ export interface EXIFGeoData {
   altitudeMeters: number;
   captureDevice: string;
   timestamp: string;
-  distanceFromPlotCentroidMeters: number;
+  distanceFromPlotCentroidMeters: number | null;
   surveyToleranceMeters: number;
-  geofenceValid: boolean;
+  geofenceValid: boolean | null;
+  hasGPS: boolean;
+  geofenceStatus: string;
   streetAddress: string;
 }
 
@@ -215,7 +217,7 @@ export interface VisionCVData {
     carpetAreaSqm: number;
     circulationRatio: number;
     requiredCirculationRatio: number;
-    nearestFireExitDistanceM: number;
+  nearestFireExitDistanceM: number | null;
     maxAllowedEgressDistanceM: number;
     polygons: CADPolygon[];
   };

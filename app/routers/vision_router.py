@@ -45,7 +45,7 @@ class CADFloorPlanData(BaseModel):
     carpetAreaSqm: float
     circulationRatio: float
     requiredCirculationRatio: float
-    nearestFireExitDistanceM: float
+    nearestFireExitDistanceM: Optional[float] = None
     maxAllowedEgressDistanceM: float
     polygons: List[CADPolygonResponse]
 
@@ -56,11 +56,12 @@ class CADAnalysisResponse(BaseModel):
     method: str
     evidence_location: str
     page_count: int
+    scale_info: Dict[str, Any]
     cadFloorPlan: CADFloorPlanData
     advisory_flags: List[str]
     limitations: List[str]
     recommended_action: str
-    merkle_leaf_hash: str
+    merkle_leaf_hash: Optional[str] = None
 
 
 class EXIFGeoDataResponse(BaseModel):
@@ -69,10 +70,11 @@ class EXIFGeoDataResponse(BaseModel):
     altitudeMeters: float
     captureDevice: str
     timestamp: str
-    distanceFromPlotCentroidMeters: float
+    distanceFromPlotCentroidMeters: Optional[float] = None
     surveyToleranceMeters: float
-    geofenceValid: bool
+    geofenceValid: Optional[bool] = None
     geofenceStatus: str
+    hasGPS: bool
     streetAddress: str
 
 
@@ -195,12 +197,8 @@ async def analyze_cad_endpoint(
 )
 async def inspect_exif_endpoint(
     file: UploadFile = File(..., description="Uploaded facility or campus photograph"),
-    declared_latitude: float = Form(
-        18.5204, description="Declared campus cadastral centroid latitude"
-    ),
-    declared_longitude: float = Form(
-        73.8567, description="Declared campus cadastral centroid longitude"
-    ),
+    declared_latitude: Optional[float] = Form(None, description="Verified campus centroid latitude, if available"),
+    declared_longitude: Optional[float] = Form(None, description="Verified campus centroid longitude, if available"),
     survey_tolerance_meters: float = Form(
         150.0, description="Acceptable geodesic buffer tolerance in meters"
     ),
@@ -292,68 +290,40 @@ async def detect_assets_endpoint(
     summary="Consolidated Layer 5 analysis accepting both floor plan PDF and lab photos",
 )
 async def analyze_infrastructure_endpoint(
-    cad_file: Optional[UploadFile] = File(None, description="Optional CAD floor plan PDF"),
-    photo_file: Optional[UploadFile] = File(None, description="Optional facility photograph"),
-    declared_latitude: float = Form(18.5204),
-    declared_longitude: float = Form(73.8567),
+    cad_file: UploadFile = File(..., description="Floor plan PDF"),
+    photo_file: UploadFile = File(..., description="Facility photograph"),
+    declared_latitude: Optional[float] = Form(None, description="Verified campus centroid latitude, if available"),
+    declared_longitude: Optional[float] = Form(None, description="Verified campus centroid longitude, if available"),
 ) -> ConsolidatedInfrastructureResponse:
-    """Consolidated endpoint executing multi-modal CAD vector, EXIF geotag, and YOLO asset detection."""
-    cad_res: Optional[Dict[str, Any]] = None
-    exif_res: Optional[Dict[str, Any]] = None
-    yolo_res: Optional[Dict[str, Any]] = None
-    advisory_summary: List[str] = []
+    """Analyze only supplied evidence; never fill missing files with synthetic assets."""
+    cad_content = await cad_file.read()
+    photo_content = await photo_file.read()
+    if not cad_content or not photo_content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Both a floor plan PDF and a facility photo are required.")
 
-    # 1. Process CAD file if provided
-    if cad_file and cad_file.filename:
-        cad_content = await cad_file.read()
-        if cad_content:
-            cad_res = get_cad_engine().analyze_floor_plan(pdf_input=cad_content)
-            advisory_summary.extend(cad_res.get("advisory_flags", []))
-
-    # If no CAD file was provided, use nominal validated CAD layout
-    if not cad_res:
-        # Default representative baseline
-        dummy_pdf = _create_dummy_cad_pdf()
-        cad_res = get_cad_engine().analyze_floor_plan(pdf_input=dummy_pdf)
-
-    # 2. Process Photo file if provided
-    if photo_file and photo_file.filename:
-        photo_content = await photo_file.read()
-        if photo_content:
-            exif_res = get_exif_validator().inspect_photo(
-                image_input=photo_content,
-                filename=photo_file.filename,
-                declared_latitude=declared_latitude,
-                declared_longitude=declared_longitude,
-            )
-            yolo_res = get_asset_detector().detect_assets(
-                image_input=photo_content,
-                filename=photo_file.filename,
-            )
-            advisory_summary.extend(exif_res.get("limitations", []))
-
-    # If no photo provided, generate baseline inspection
-    if not exif_res:
-        exif_res = get_exif_validator().inspect_photo(
-            image_input=_create_dummy_photo(),
-            declared_latitude=declared_latitude,
-            declared_longitude=declared_longitude,
-        )
-
-    if not yolo_res:
-        yolo_res = get_asset_detector().detect_assets(
-            image_input=_create_dummy_photo()
-        )
+    cad_res = get_cad_engine().analyze_floor_plan(pdf_input=cad_content, page_index=0)
+    exif_res = get_exif_validator().inspect_photo(
+        image_input=photo_content,
+        filename=photo_file.filename or "facility_photo",
+        declared_latitude=declared_latitude,
+        declared_longitude=declared_longitude,
+    )
+    yolo_res = get_asset_detector().detect_assets(
+        image_input=photo_content,
+        filename=photo_file.filename or "facility_photo",
+    )
+    advisory_summary = cad_res.get("limitations", []) + exif_res.get("limitations", [])
 
     # Combine hashes for Layer 6 Merkle Root seal
-    leaf1 = cad_res.get("merkle_leaf_hash", "")
+    leaf1 = cad_res.get("merkle_leaf_hash") or ""
     leaf2 = exif_res.get("merkle_leaf_hash", "")
     leaf3 = yolo_res.get("merkle_leaf_hash", "")
     combined_seal = hashlib.sha256(f"{leaf1}:{leaf2}:{leaf3}".encode()).hexdigest()
 
+    is_complete = cad_res.get("processing_status") == "COMPLETED"
     return ConsolidatedInfrastructureResponse(
         success=True,
-        processing_status="COMPLETED",
+        processing_status="COMPLETED" if is_complete else cad_res.get("processing_status", "REVIEW_REQUIRED"),
         cadFloorPlan=CADFloorPlanData(**cad_res["cadFloorPlan"]),
         geotagPhoto=EXIFGeoDataResponse(**exif_res["geotagPhoto"]),
         yoloDetections=[YOLOAssetResponse(**d) for d in yolo_res["yoloDetections"]],

@@ -338,6 +338,8 @@ export const INSTITUTIONS: InstitutionProfile[] = [
         distanceFromPlotCentroidMeters: 388.4,
         surveyToleranceMeters: 50.0,
         geofenceValid: false,
+        hasGPS: true,
+        geofenceStatus: "GEOFENCE_EXCEEDED",
         streetAddress: "Survey 88/2C perimeter (388m outside registered plot boundary)",
       },
       yoloDetections: [
@@ -641,6 +643,8 @@ export const INSTITUTIONS: InstitutionProfile[] = [
         distanceFromPlotCentroidMeters: 6.8,
         surveyToleranceMeters: 50.0,
         geofenceValid: true,
+        hasGPS: true,
+        geofenceStatus: "VALID",
         streetAddress: "Munshi Nagar, Andheri West, Mumbai (Within surveyed boundary)",
       },
       yoloDetections: [
@@ -910,6 +914,8 @@ export const INSTITUTIONS: InstitutionProfile[] = [
         distanceFromPlotCentroidMeters: 11.2,
         surveyToleranceMeters: 50.0,
         geofenceValid: true,
+        hasGPS: true,
+        geofenceStatus: "VALID",
         streetAddress: "Viman Nagar Institutional Complex, Pune",
       },
       yoloDetections: [
@@ -1189,6 +1195,8 @@ export const INSTITUTIONS: InstitutionProfile[] = [
         distanceFromPlotCentroidMeters: 18.0,
         surveyToleranceMeters: 50.0,
         geofenceValid: true,
+        hasGPS: true,
+        geofenceStatus: "VALID",
         streetAddress: "Nagpur Rural Ward 14",
       },
       yoloDetections: [

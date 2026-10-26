@@ -152,3 +152,19 @@
 .animate-spin-reverse-slow {
   animation: spin-reverse-slow 60s linear infinite;
 }
+
+html { scroll-behavior: smooth; }
+.satya-feature-card { transform-style: preserve-3d; transition: transform .45s cubic-bezier(.2,.75,.25,1), box-shadow .45s ease; }
+.satya-feature-card:hover { transform: translateY(-7px) rotateX(1deg); box-shadow: 0 24px 48px -24px rgba(74,21,4,.4), inset 0 0 20px rgba(212,175,55,.08); }
+.satya-card-visual { position:absolute; inset:0 0 auto auto; width:46%; height:58%; overflow:hidden; opacity:.55; mask-image:linear-gradient(135deg, transparent 5%, black 100%); pointer-events:none; }
+.satya-orbit { position:absolute; width:116px; height:116px; right:24px; top:-32px; border:1px solid rgba(197,155,39,.5); border-radius:50%; box-shadow:0 0 0 16px rgba(197,155,39,.08),0 0 0 32px rgba(197,155,39,.06); transition:transform .7s cubic-bezier(.2,.75,.25,1); }
+.satya-signal { position:absolute; right:76px; top:6px; width:3px; height:88px; background:linear-gradient(transparent,#D4AF37,transparent); transform:rotate(42deg); transform-origin:center; transition:transform .6s ease; }
+.satya-feature-card:hover .satya-orbit { transform:scale(1.22) rotate(22deg); }
+.satya-feature-card:hover .satya-signal { transform:rotate(70deg) translateX(8px); }
+.satya-card-forensic .satya-orbit { border-radius:22%; transform:rotate(45deg); }
+.satya-card-verify .satya-orbit { border-style:dashed; }
+.satya-card-graph .satya-orbit { border-radius:18%; transform:rotate(45deg); }
+.satya-card-evidence .satya-signal { height:120px; right:54px; top:-8px; }
+.satya-mark { position:relative; }
+.satya-mark::after { content:""; position:absolute; inset:5px; border:1px solid rgba(255,243,176,.35); border-radius:12px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } *,*::before,*::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; } }

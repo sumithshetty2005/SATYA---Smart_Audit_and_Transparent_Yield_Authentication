@@ -21,112 +21,41 @@ interface Props {
   initialPhotoFile?: File | null;
 }
 
-const BACKEND_BASE = 'http://127.0.0.1:8000';
+const BACKEND_BASE = '';
 
 export const Layer5VisionCV: React.FC<Props> = ({
   institution,
 }) => {
   // Baseline data from institution or defaults
   const defaultCad = institution?.layer5?.cadFloorPlan || {
-    totalAreaSqm: 14250,
-    carpetAreaSqm: 11850,
-    circulationRatio: 0.202,
+    totalAreaSqm: 0,
+    carpetAreaSqm: 0,
+    circulationRatio: 0,
     requiredCirculationRatio: 0.25,
-    nearestFireExitDistanceM: 34.8,
+    nearestFireExitDistanceM: 0,
     maxAllowedEgressDistanceM: 30.0,
-    polygons: [
-      {
-        id: 'poly-1',
-        roomName: 'Classroom 101',
-        category: 'INSTRUCTIONAL' as const,
-        areaSqm: 72.5,
-        calculatedBy: 'Shapely Vector GIS Engine',
-        points: '50,40 280,40 280,200 50,200',
-        status: 'PASS' as const,
-      },
-      {
-        id: 'poly-2',
-        roomName: 'Computer Science Lab 01',
-        category: 'INSTRUCTIONAL' as const,
-        areaSqm: 168.0,
-        calculatedBy: 'Shapely Vector GIS Engine',
-        points: '320,40 580,40 580,200 320,200',
-        status: 'PASS' as const,
-      },
-      {
-        id: 'poly-3',
-        roomName: 'Central Corridor & Circulation',
-        category: 'CIRCULATION' as const,
-        areaSqm: 54.0,
-        calculatedBy: 'Shapely Vector GIS Engine',
-        points: '50,230 280,230 280,410 50,410',
-        status: 'DEFICIENT' as const,
-      },
-      {
-        id: 'poly-4',
-        roomName: 'Fire Egress Vestibule',
-        category: 'FIRE_EGRESS' as const,
-        areaSqm: 28.0,
-        calculatedBy: 'Shapely Vector GIS Engine',
-        points: '320,230 580,230 580,410 320,410',
-        status: 'DEFICIENT' as const,
-      },
-    ],
+    polygons: [],
   };
 
   const defaultExif: EXIFGeoData = institution?.layer5?.geotagPhoto || {
-    latitude: 18.5204,
-    longitude: 73.8567,
-    altitudeMeters: 560.2,
-    captureDevice: 'Canon EOS 90D (Tamper-Resistant Firmware)',
-    timestamp: '2026-10-26 11:30:14',
-    distanceFromPlotCentroidMeters: 42.5,
+    latitude: 0,
+    longitude: 0,
+    altitudeMeters: 0,
+    captureDevice: 'Not available',
+    timestamp: 'Not available',
+    distanceFromPlotCentroidMeters: null,
     surveyToleranceMeters: 150.0,
-    geofenceValid: true,
-    streetAddress: 'Survey-42/1B, Hinjawadi Phase 2, Pune, Maharashtra 411057',
+    geofenceValid: null,
+    hasGPS: false,
+    geofenceStatus: 'NO_PHOTO',
+    streetAddress: 'Not available - no photo uploaded',
   };
 
-  const defaultYolo: YOLOAsset[] = institution?.layer5?.yoloDetections || [
-    {
-      id: 'yolo-1',
-      label: 'Computer Workstations / Monitors',
-      confidence: 0.94,
-      bbox: [18, 12, 62, 58],
-      requiredQty: 30,
-      detectedQty: 32,
-      compliant: true,
-    },
-    {
-      id: 'yolo-2',
-      label: 'Ergonomic Lab Seating',
-      confidence: 0.89,
-      bbox: [48, 15, 88, 55],
-      requiredQty: 30,
-      detectedQty: 30,
-      compliant: true,
-    },
-    {
-      id: 'yolo-3',
-      label: 'Fire Safety Extinguisher',
-      confidence: 0.91,
-      bbox: [15, 82, 45, 94],
-      requiredQty: 2,
-      detectedQty: 2,
-      compliant: true,
-    },
-    {
-      id: 'yolo-4',
-      label: 'Electrical Lab Multimeter / Oscilloscope',
-      confidence: 0.86,
-      bbox: [25, 62, 58, 88],
-      requiredQty: 4,
-      detectedQty: 3,
-      compliant: false,
-    },
-  ];
+  const defaultYolo: YOLOAsset[] = institution?.layer5?.yoloDetections || [];
 
   // Dynamic state populated from real backend API calls
   const [cadFloorPlan, setCadFloorPlan] = useState(defaultCad);
+  const [scaleAvailable, setScaleAvailable] = useState(Boolean(institution?.layer5?.cadFloorPlan));
   const [geotagPhoto, setGeotagPhoto] = useState<EXIFGeoData>(defaultExif);
   const [yoloDetections, setYoloDetections] = useState<YOLOAsset[]>(defaultYolo);
 
@@ -143,16 +72,10 @@ export const Layer5VisionCV: React.FC<Props> = ({
   const [processingStage, setProcessingStage] = useState<string>('');
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [scaleAnnotation, setScaleAnnotation] = useState<string>(
-    'Scale: 1:100 (Calibrated Vector Baseline)'
+    institution?.layer5?.cadFloorPlan ? 'Simulated sample geometry' : 'Scale not supplied; measurements unavailable'
   );
-  const [merkleLeafHash, setMerkleLeafHash] = useState<string>(
-    'e7c2a91f884b230198cd4a9f31b8e90c2a1e74f98105e26b1a3890cf412019ab'
-  );
-  const [advisoryNotes, setAdvisoryNotes] = useState<string[]>([
-    'Circulation ratio 20.2% is below the AICTE APH Chapter II 25% guideline.',
-    'Nearest fire exit egress travel distance of 34.8m exceeds statutory 30m corridor envelope.',
-    'Laboratory machinery detected: 3 multimeters observed vs 4 required for full batch intake.',
-  ]);
+  const [merkleLeafHash, setMerkleLeafHash] = useState<string>('');
+  const [advisoryNotes, setAdvisoryNotes] = useState<string[]>([]);
   const [copiedHash, setCopiedHash] = useState(false);
 
   // File Input Refs
@@ -182,7 +105,9 @@ export const Layer5VisionCV: React.FC<Props> = ({
       }
 
       const data = await response.json();
-      if (data.cadFloorPlan) {
+      const hasScale = Boolean(data.scale_info?.scale_available);
+      setScaleAvailable(hasScale);
+      if (data.cadFloorPlan && hasScale) {
         setCadFloorPlan({
           totalAreaSqm: data.cadFloorPlan.totalAreaSqm,
           carpetAreaSqm: data.cadFloorPlan.carpetAreaSqm,
@@ -206,16 +131,18 @@ export const Layer5VisionCV: React.FC<Props> = ({
         }
 
         if (data.scale_info) {
-          setScaleAnnotation(
-            data.scale_info.scale_available
-              ? `Scale: Text Detected (${data.scale_info.scale_source})`
-              : 'Scale: Calibrated Engineering Baseline (Review Recommended)'
-          );
+          setScaleAnnotation(hasScale
+            ? `Scale: Text Detected (${data.scale_info.scale_source || 'verified source'})`
+            : 'Scale unavailable; no area or distance calculations performed');
         }
 
-        if (data.advisory_flags) {
-          setAdvisoryNotes(data.advisory_flags);
+        if (!hasScale) {
+          setCadFloorPlan({ ...defaultCad, polygons: [] });
+          setSelectedPolygon(null);
+          setMerkleLeafHash('');
         }
+
+        setAdvisoryNotes([...(data.advisory_flags || []), ...(data.limitations || [])]);
 
         if (data.merkle_leaf_hash) {
           setMerkleLeafHash(data.merkle_leaf_hash);
@@ -223,11 +150,12 @@ export const Layer5VisionCV: React.FC<Props> = ({
       }
     } catch (err: any) {
       console.warn('CAD upload fallback:', err.message);
-      // Retain existing state with warning note
-      setAdvisoryNotes((prev) => [
-        `Upload analysis notice: ${err.message}. Retaining calibrated CAD layout.`,
-        ...prev,
-      ]);
+      setScaleAvailable(false);
+      setScaleAnnotation('CAD analysis unavailable; measurements not assessed');
+      setCadFloorPlan({ ...defaultCad, polygons: [] });
+      setSelectedPolygon(null);
+      setMerkleLeafHash('');
+      setAdvisoryNotes([`CAD analysis could not be completed: ${err.message}`]);
     } finally {
       setIsProcessing(false);
       setProcessingStage('');
@@ -249,8 +177,6 @@ export const Layer5VisionCV: React.FC<Props> = ({
     // A. Run EXIF Inspection
     const exifData = new FormData();
     exifData.append('file', file);
-    exifData.append('declared_latitude', '18.5204');
-    exifData.append('declared_longitude', '73.8567');
 
     // B. Run YOLO Detection
     const yoloData = new FormData();
@@ -282,6 +208,8 @@ export const Layer5VisionCV: React.FC<Props> = ({
               exifJson.geotagPhoto.distanceFromPlotCentroidMeters,
             surveyToleranceMeters: exifJson.geotagPhoto.surveyToleranceMeters,
             geofenceValid: exifJson.geotagPhoto.geofenceValid,
+            hasGPS: Boolean(exifJson.geotagPhoto.hasGPS),
+            geofenceStatus: exifJson.geotagPhoto.geofenceStatus || 'INCONCLUSIVE',
             streetAddress: exifJson.geotagPhoto.streetAddress,
           });
         }
@@ -321,10 +249,9 @@ export const Layer5VisionCV: React.FC<Props> = ({
     setTimeout(() => setCopiedHash(false), 2000);
   };
 
-  const isCirculationCompliant =
-    cadFloorPlan.circulationRatio >= cadFloorPlan.requiredCirculationRatio;
-  const isFireEgressCompliant =
-    cadFloorPlan.nearestFireExitDistanceM <= cadFloorPlan.maxAllowedEgressDistanceM;
+  const isCirculationCompliant = scaleAvailable && cadFloorPlan.circulationRatio >= cadFloorPlan.requiredCirculationRatio;
+  const hasMeasuredEgress = cadFloorPlan.nearestFireExitDistanceM != null;
+  const isFireEgressCompliant = scaleAvailable && hasMeasuredEgress && cadFloorPlan.nearestFireExitDistanceM! <= cadFloorPlan.maxAllowedEgressDistanceM;
 
   return (
     <div className="space-y-6 font-sans-modern">
@@ -389,16 +316,22 @@ export const Layer5VisionCV: React.FC<Props> = ({
             {/* Geofence Status Badge */}
             <div
               className={`p-3 rounded-xl border text-right min-w-[120px] ${
-                geotagPhoto.geofenceValid
+                geotagPhoto.geofenceValid === true
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                  : 'bg-amber-50 text-amber-800 border-amber-300'
+                  : geotagPhoto.geofenceValid === false
+                    ? 'bg-red-50 text-red-800 border-red-300'
+                    : 'bg-amber-50 text-amber-800 border-amber-300'
               }`}
             >
               <span className="text-[10px] uppercase font-bold opacity-75 block">
                 Geofence Status
               </span>
               <span className="font-mono font-extrabold text-xs">
-                {geotagPhoto.geofenceValid ? 'VALID WITHIN 50M' : 'GEOFENCE ANOMALY'}
+                {geotagPhoto.geofenceValid === true
+                  ? 'VALID WITHIN TOLERANCE'
+                  : geotagPhoto.geofenceValid === false
+                    ? 'OUTSIDE TOLERANCE'
+                    : geotagPhoto.hasGPS ? 'REFERENCE UNAVAILABLE' : 'INCONCLUSIVE · NO GPS'}
               </span>
             </div>
           </div>
@@ -431,12 +364,13 @@ export const Layer5VisionCV: React.FC<Props> = ({
                 </div>
               </div>
               <span className="text-[11px] font-mono font-bold text-[#4A1504] bg-[#FAF4E8] px-2.5 py-1 rounded-lg border border-[#D4AF37]/40">
-                Total: {cadFloorPlan.totalAreaSqm.toLocaleString()} m²
+                Total: {scaleAvailable ? `${cadFloorPlan.totalAreaSqm.toLocaleString()} m²` : 'Not assessed'}
               </span>
             </div>
 
             {/* Interactive SVG Floor Plan Canvas */}
             <div className="relative w-full aspect-[4/3] bg-[#FAF4E8] rounded-xl border-2 border-[#D4AF37]/40 shadow-inner overflow-hidden select-none p-3">
+              {!scaleAvailable && <div className="absolute z-10 inset-0 flex items-center justify-center bg-[#FAF4E8]/80 text-center p-8 text-sm font-semibold text-[#4A1504]">Upload a floor plan with a verifiable scale to assess geometry. No areas or distances are inferred.</div>}
               <svg className="w-full h-full" viewBox="0 0 620 460">
                 {/* Grid guidelines */}
                 <defs>
@@ -503,17 +437,6 @@ export const Layer5VisionCV: React.FC<Props> = ({
                 })}
 
                 {/* Fire exit travel route line */}
-                <path
-                  d="M 200 130 L 250 240 L 360 250 L 580 250"
-                  fill="none"
-                  stroke="#DC2626"
-                  strokeWidth="2"
-                  strokeDasharray="4 4"
-                />
-                <circle cx="580" cy="250" r="5" fill="#DC2626" />
-                <text x="440" y="240" fill="#DC2626" fontSize="8" fontWeight="bold">
-                  Fire Exit Route ({cadFloorPlan.nearestFireExitDistanceM}m)
-                </text>
               </svg>
             </div>
 
@@ -524,10 +447,11 @@ export const Layer5VisionCV: React.FC<Props> = ({
                   <span>{selectedPolygon.roomName}</span>
                   <span
                     className={
-                      selectedPolygon.status === 'PASS' ? 'text-emerald-700' : 'text-red-700'
+                    selectedPolygon.status === 'PASS' ? 'text-emerald-700' : selectedPolygon.status === 'UNASSESSED' ? 'text-amber-700' : 'text-red-700'
                     }
                   >
-                    {selectedPolygon.status === 'PASS'
+                    {selectedPolygon.status === 'UNASSESSED' ? 'Not assessed'
+                      : selectedPolygon.status === 'PASS'
                       ? 'Compliant Area'
                       : 'Deficient / Shortfall'}
                   </span>
@@ -549,13 +473,13 @@ export const Layer5VisionCV: React.FC<Props> = ({
                 </span>
                 <span
                   className={`font-mono font-bold text-sm ${
-                    isCirculationCompliant ? 'text-emerald-700' : 'text-red-700'
+                    !scaleAvailable ? 'text-amber-700' : isCirculationCompliant ? 'text-emerald-700' : 'text-red-700'
                   }`}
                 >
-                  {(cadFloorPlan.circulationRatio * 100).toFixed(1)}% (Req: 25%)
+                  {scaleAvailable ? `${(cadFloorPlan.circulationRatio * 100).toFixed(1)}% (Req: ${(cadFloorPlan.requiredCirculationRatio * 100).toFixed(0)}%)` : 'Not assessed'}
                 </span>
                 <span className="text-[9px] text-[#2B1609]/60 block">
-                  {isCirculationCompliant ? 'Meets APH guidelines' : 'Below statutory 25% threshold'}
+                  {!scaleAvailable ? 'Requires a verified drawing scale' : isCirculationCompliant ? 'Meets configured guideline' : 'Below configured threshold'}
                 </span>
               </div>
 
@@ -565,13 +489,13 @@ export const Layer5VisionCV: React.FC<Props> = ({
                 </span>
                 <span
                   className={`font-mono font-bold text-sm ${
-                    isFireEgressCompliant ? 'text-emerald-700' : 'text-red-700'
+                    !scaleAvailable || !hasMeasuredEgress ? 'text-amber-700' : isFireEgressCompliant ? 'text-emerald-700' : 'text-red-700'
                   }`}
                 >
-                  {cadFloorPlan.nearestFireExitDistanceM}m (Max: 30m)
+                  {scaleAvailable && hasMeasuredEgress ? `${cadFloorPlan.nearestFireExitDistanceM}m (Max: ${cadFloorPlan.maxAllowedEgressDistanceM}m)` : 'Not assessed'}
                 </span>
                 <span className="text-[9px] text-[#2B1609]/60 block">
-                  {isFireEgressCompliant ? 'Safe exit travel' : 'Exceeds 30m corridor maximum'}
+                  {!scaleAvailable ? 'Requires a verified drawing scale' : !hasMeasuredEgress ? 'Exit geometry and route are not assessed' : isFireEgressCompliant ? 'Within configured limit' : 'Exceeds configured limit'}
                 </span>
               </div>
             </div>
@@ -588,7 +512,7 @@ export const Layer5VisionCV: React.FC<Props> = ({
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">GNSS Coordinates:</span>
                 <span className="font-mono font-bold text-[#4A1504]">
-                  {geotagPhoto.latitude.toFixed(4)}° N, {geotagPhoto.longitude.toFixed(4)}° E
+                  {geotagPhoto.hasGPS ? `${geotagPhoto.latitude.toFixed(4)}°, ${geotagPhoto.longitude.toFixed(4)}°` : 'Not present in image metadata'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -599,11 +523,10 @@ export const Layer5VisionCV: React.FC<Props> = ({
                 <span className="text-[#2B1609]/70">Distance from Plot Centroid:</span>
                 <span
                   className={`font-mono font-bold ${
-                    geotagPhoto.geofenceValid ? 'text-emerald-700' : 'text-red-700'
+                    geotagPhoto.geofenceValid === true ? 'text-emerald-700' : geotagPhoto.geofenceValid === false ? 'text-red-700' : 'text-amber-700'
                   }`}
                 >
-                  {geotagPhoto.distanceFromPlotCentroidMeters.toFixed(1)}m (Tolerance:{' '}
-                  {geotagPhoto.surveyToleranceMeters}m)
+                  {geotagPhoto.distanceFromPlotCentroidMeters == null ? 'Not calculated' : `${geotagPhoto.distanceFromPlotCentroidMeters.toFixed(1)}m (Tolerance: ${geotagPhoto.surveyToleranceMeters}m)`}
                 </span>
               </div>
               <p className="text-[11px] text-[#2B1609]/80 italic pt-1 border-t border-[#D4AF37]/20 font-mono">
@@ -752,6 +675,7 @@ export const Layer5VisionCV: React.FC<Props> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopyMerkleHash}
+              disabled={!merkleLeafHash}
               className="flex items-center gap-1 px-2.5 py-1 bg-white border border-[#D4AF37]/50 rounded-lg text-xs font-mono text-[#4A1504] hover:bg-[#F5E6C8] cursor-pointer"
             >
               {copiedHash ? (
@@ -783,10 +707,10 @@ export const Layer5VisionCV: React.FC<Props> = ({
         <div className="pt-2 border-t border-[#D4AF37]/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px] font-mono">
           <span className="text-[#2B1609]/70">Layer 6 Merkle Leaf Pre-Commit Hash:</span>
           <span className="font-bold text-[#4A1504] truncate max-w-md" title={merkleLeafHash}>
-            {merkleLeafHash}
+            {merkleLeafHash || 'Not generated'}
           </span>
           <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-            SEALED
+            {merkleLeafHash ? 'DIGEST GENERATED' : 'NOT GENERATED'}
           </span>
         </div>
       </div>

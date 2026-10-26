@@ -28,7 +28,7 @@ export interface DiscrepancyItem {
 }
 
 export interface DigiLockerSourceReceipt {
-  receipt_id: string;
+  receipt_id?: string | null;
   outcome: DigiLockerOutcome;
   status_title: string;
   status_description: string;
@@ -45,13 +45,14 @@ export interface DigiLockerSourceReceipt {
   };
   discrepancy_details?: string | null;
   discrepancies: DiscrepancyItem[];
-  oauth_consent_token: string;
-  oauth_consent_timestamp: string;
-  api_latency_ms: number;
-  raw_payload_digest: string;
-  hmac_signature: string;
-  merkle_leaf_hash: string;
-  timestamp: string;
+  oauth_consent_token?: string | null;
+  oauth_consent_timestamp?: string | null;
+  api_latency_ms?: number | null;
+  raw_payload_digest?: string | null;
+  hmac_signature?: string | null;
+  merkle_leaf_hash?: string | null;
+  timestamp?: string | null;
+  verification_mode: string;
 }
 
 export interface RegistryOption {

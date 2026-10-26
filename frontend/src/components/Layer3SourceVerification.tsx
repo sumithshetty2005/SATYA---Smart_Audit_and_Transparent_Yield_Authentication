@@ -31,7 +31,7 @@ interface Props {
   institutionId?: string;
 }
 
-const BACKEND_BASE = 'http://127.0.0.1:8000';
+const BACKEND_BASE = '';
 
 const DEFAULT_REGISTRIES: RegistryOption[] = [
   {
@@ -41,8 +41,8 @@ const DEFAULT_REGISTRIES: RegistryOption[] = [
     state: 'Maharashtra',
     category: 'Land Revenue Records',
     endpoint: 'https://apisetu.gov.in/sandbox/dl/mahabhumi/v2/extract',
-    sandbox_active: true,
-    description: 'Authoritative land title deeds, khatauni records, and 7/12 land parcel registers for Western Region.',
+    sandbox_active: false,
+    description: 'Reference only; no authorized SATYA connection is configured.',
   },
   {
     id: 'E_BHULEKH_UP',
@@ -51,8 +51,8 @@ const DEFAULT_REGISTRIES: RegistryOption[] = [
     state: 'Uttar Pradesh',
     category: 'Land Revenue Records',
     endpoint: 'https://apisetu.gov.in/sandbox/dl/up-bhulekh/v1/khasra',
-    sandbox_active: true,
-    description: 'Real-time Khasra/Khatauni verification and spatial contiguity validation for Northern Region.',
+    sandbox_active: false,
+    description: 'Reference only; no authorized SATYA connection is configured.',
   },
   {
     id: 'BHOOMI_KA',
@@ -61,8 +61,8 @@ const DEFAULT_REGISTRIES: RegistryOption[] = [
     state: 'Karnataka',
     category: 'Land Revenue Records',
     endpoint: 'https://apisetu.gov.in/sandbox/dl/karnataka-bhoomi/v3/rtc',
-    sandbox_active: true,
-    description: 'RTC Land Title and Mutation Ledger with digital cryptographic signature validation.',
+    sandbox_active: false,
+    description: 'Reference only; no authorized SATYA connection is configured.',
   },
   {
     id: 'FIRE_NOC_PORTAL',
@@ -71,8 +71,8 @@ const DEFAULT_REGISTRIES: RegistryOption[] = [
     state: 'National',
     category: 'Safety Clearances',
     endpoint: 'https://apisetu.gov.in/sandbox/dl/fire-noc/v1/validate',
-    sandbox_active: true,
-    description: 'Real-time verification of institutional Fire Safety NOCs and structural inspection approvals.',
+    sandbox_active: false,
+    description: 'Reference only; no authorized SATYA connection is configured.',
   },
   {
     id: 'COA_REGISTRY',
@@ -81,8 +81,8 @@ const DEFAULT_REGISTRIES: RegistryOption[] = [
     state: 'National',
     category: 'Professional Licensure',
     endpoint: 'https://apisetu.gov.in/sandbox/dl/coa/v1/license-check',
-    sandbox_active: true,
-    description: 'Validates architect registration numbers and structural certificate authenticity.',
+    sandbox_active: false,
+    description: 'Reference only; no authorized SATYA connection is configured.',
   },
 ];
 
@@ -97,14 +97,11 @@ export const Layer3SourceVerification: React.FC<Props> = ({
     propInstitutionName || institution?.name || 'Apex Global Institute of Technology';
   const instId = propInstitutionId || institution?.id || '1-4458923110';
   const claimedAcreage =
-    propClaimedAcreage ?? institution?.layer1?.payload?.landAreaAcres ?? 7.2;
+    propClaimedAcreage ?? institution?.layer1?.payload?.landAreaAcres;
 
   // Active registries and selected registry
   const [registries, setRegistries] = useState<RegistryOption[]>(DEFAULT_REGISTRIES);
   const [selectedRegistryId, setSelectedRegistryId] = useState<string>('MAHABHUMI_LAND_RECORD');
-
-  // Outcome simulation override (or 'AUTO')
-  const [requestedOutcome, setRequestedOutcome] = useState<DigiLockerOutcome | 'AUTO'>('AUTO');
 
   // Network state & Returned Receipt
   const [isVerifying, setIsVerifying] = useState(false);
@@ -114,16 +111,15 @@ export const Layer3SourceVerification: React.FC<Props> = ({
 
   // DigiLocker OAuth 2.0 Sandbox State
   const [isOAuthModalOpen, setIsOAuthModalOpen] = useState(false);
-  const [isOAuthAuthenticating, setIsOAuthAuthenticating] = useState(false);
-  const [oauthTokenState, setOauthTokenState] = useState<DigiLockerOAuthTokenState>({
-    accessToken: 'dl_tok_9f1a84c01d29e882a933f789bc441021',
+  const [oauthTokenState] = useState<DigiLockerOAuthTokenState>({
+    accessToken: '',
     tokenType: 'Bearer',
-    expiresIn: 3600,
-    scope: 'org.digilocker.land_records org.digilocker.edu_affiliation',
-    consentArtifactId: 'CNS-ARTEFACT-8849-B2',
-    consentTimestamp: '2026-10-26T11:42:00Z',
-    citizenAadhaarLast4: '8819',
-    status: 'ACTIVE_CONSENT_GRANTED',
+    expiresIn: 0,
+    scope: '',
+    consentArtifactId: '',
+    consentTimestamp: '',
+    citizenAadhaarLast4: '',
+    status: 'NOT_CONFIGURED',
   });
 
   // Fetch available registries from backend on mount
@@ -148,22 +144,17 @@ export const Layer3SourceVerification: React.FC<Props> = ({
     handleRequeryRegistries();
   }, []);
 
-  const handleRequeryRegistries = async (forcedOutcomeOverride?: DigiLockerOutcome) => {
+  const handleRequeryRegistries = async () => {
     setIsVerifying(true);
     setApiError(null);
-
-    const outcomeToSend =
-      forcedOutcomeOverride || (requestedOutcome !== 'AUTO' ? requestedOutcome : undefined);
 
     const payload = {
       institution_id: instId,
       institution_name: instName,
-      deed_number: 'DEED-PUN-2019-9821',
-      survey_number: 'Survey-42/1B',
+      survey_number: institution?.layer1?.payload?.surveyNumber,
       claimed_acreage: claimedAcreage,
       target_registry: selectedRegistryId,
-      forced_outcome: outcomeToSend,
-      oauth_token: oauthTokenState.accessToken,
+      oauth_token: oauthTokenState.accessToken || undefined,
     };
 
     try {
@@ -181,150 +172,9 @@ export const Layer3SourceVerification: React.FC<Props> = ({
       setSourceReceipt(receipt);
     } catch (err: any) {
       setApiError(err.message || 'Connection to verification service failed.');
-      // Local fallback simulator if backend port is not responding
-      const fallbackOutcome = outcomeToSend || 'MISMATCH';
-      setSourceReceipt({
-        receipt_id: `DLR-2026-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-        outcome: fallbackOutcome,
-        status_title:
-          fallbackOutcome === 'MATCH'
-            ? 'Authoritative Match Reconciled (100% Integrity)'
-            : fallbackOutcome === 'MISMATCH'
-            ? 'Regulatory Discrepancy Flagged (Acreage Deficit)'
-            : fallbackOutcome === 'PENDING'
-            ? 'Signatory Consent Awaited (Sandbox Consent Pending)'
-            : fallbackOutcome === 'UNAVAILABLE'
-            ? 'Registry Gateway Unavailable (HTTP 504 Timeout)'
-            : 'Manual Scrutiny Mandated (Joint Khata Demarcation)',
-        status_description:
-          fallbackOutcome === 'MATCH'
-            ? `All parameters reconcile 100% against official state land register.`
-            : fallbackOutcome === 'MISMATCH'
-            ? `Institutional claim of ${claimedAcreage} Acres conflicts with State registry records (4.00 Acres).`
-            : fallbackOutcome === 'PENDING'
-            ? `Consent token pending authorization from registered institutional trustee.`
-            : fallbackOutcome === 'UNAVAILABLE'
-            ? `State revenue gateway server timed out after 3500ms.`
-            : `Joint ancestral holding without Sub-Divisional Officer demarcation map.`,
-        registry_code: selectedRegistryId,
-        registry_name:
-          registries.find((r) => r.id === selectedRegistryId)?.name ||
-          'State Land & Revenue Registry',
-        authoritative_record:
-          fallbackOutcome === 'PENDING' || fallbackOutcome === 'UNAVAILABLE'
-            ? null
-            : {
-                deed_number: 'DEED-PUN-2019-9821',
-                survey_number: 'Survey-42/1B',
-                registered_owner:
-                  fallbackOutcome === 'MATCH'
-                    ? `${instName} Education Society`
-                    : 'M/s Industrial Agro Farms Pvt Ltd',
-                authoritative_acreage: fallbackOutcome === 'MATCH' ? claimedAcreage : 4.0,
-                registration_date: '2014-11-03',
-                encumbrance_status:
-                  fallbackOutcome === 'MATCH' ? 'NIL_ENCUMBRANCE' : 'ACTIVE_BANK_HYPOTHECATION',
-                zoning_classification:
-                  fallbackOutcome === 'MATCH' ? 'Educational / Institutional' : 'Agricultural Zone',
-                issuing_authority: 'Government of Maharashtra',
-                state: 'Maharashtra',
-                registry_source_url: 'https://apisetu.gov.in/sandbox/dl/mahabhumi/v2/extract',
-              },
-        claimed_record: {
-          institution_id: instId,
-          institution_name: instName,
-          deed_number: 'DEED-PUN-2019-9821',
-          survey_number: 'Survey-42/1B',
-          claimed_acreage: claimedAcreage,
-          document_type: 'LAND_TITLE_DEED',
-        },
-        discrepancy_details:
-          fallbackOutcome === 'MISMATCH'
-            ? `Claimed: ${claimedAcreage} Acres | Registry: 4.00 Acres (-${(
-                claimedAcreage - 4.0
-              ).toFixed(2)} Acres). Unrelated registered owner.`
-            : null,
-        discrepancies:
-          fallbackOutcome === 'MISMATCH'
-            ? [
-                {
-                  field: 'land_area_acres',
-                  claimed: claimedAcreage,
-                  authoritative: 4.0,
-                  delta: -(claimedAcreage - 4.0),
-                  violation: 'APH Chapter II Clause 2.4.1 Land Norm Shortfall',
-                  severity: 'CRITICAL',
-                },
-              ]
-            : [],
-        oauth_consent_token: oauthTokenState.accessToken,
-        oauth_consent_timestamp: new Date().toISOString(),
-        api_latency_ms: 184,
-        raw_payload_digest: '9a462c413759d8e8e24824af7bf6438df391df050e1f87ef05769d65f572a0c0',
-        hmac_signature: '428c85cb2c2e0d0cf27cd53c1ecc92213f3bb99f0ea21b1f80bc3431ca44873c',
-        merkle_leaf_hash: '139206e32c04b5642d426d36ce2ccdc19ab48c3b29012ea056d34a07a4d87913',
-        timestamp: new Date().toISOString(),
-      });
+      setSourceReceipt(null);
     } finally {
       setIsVerifying(false);
-    }
-  };
-
-  const handleSimulateOAuthConsent = async () => {
-    setIsOAuthAuthenticating(true);
-    try {
-      // 1. Authorize step
-      const authRes = await fetch(`${BACKEND_BASE}/api/v1/verification/digilocker/oauth/authorize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          institution_id: instId,
-          redirect_uri: 'http://localhost:5173/verification/oauth/callback',
-          scope: 'org.digilocker.land_records org.digilocker.edu_affiliation',
-        }),
-      });
-
-      const authData = await authRes.json();
-
-      // 2. Token step
-      const tokenRes = await fetch(`${BACKEND_BASE}/api/v1/verification/digilocker/oauth/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: 'AUTH_CODE_SANDBOX_SETU_88',
-          state: authData.state || 'csrf_state_8912',
-          client_id: 'AICTE_SETU_SANDBOX_2026',
-        }),
-      });
-
-      const tokenData = await tokenRes.json();
-      setOauthTokenState({
-        accessToken: tokenData.access_token,
-        tokenType: tokenData.token_type,
-        expiresIn: tokenData.expires_in,
-        scope: tokenData.scope,
-        consentArtifactId: tokenData.consent_artifact_id,
-        consentTimestamp: tokenData.consent_timestamp,
-        citizenAadhaarLast4: tokenData.citizen_aadhaar_last4,
-        status: tokenData.status,
-      });
-    } catch {
-      // Local fallback
-      setOauthTokenState({
-        accessToken: `dl_tok_${Math.random().toString(36).substring(2, 16)}`,
-        tokenType: 'Bearer',
-        expiresIn: 3600,
-        scope: 'org.digilocker.land_records org.digilocker.edu_affiliation',
-        consentArtifactId: `CNS-ARTEFACT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        consentTimestamp: new Date().toISOString(),
-        citizenAadhaarLast4: '8819',
-        status: 'ACTIVE_CONSENT_GRANTED',
-      });
-    } finally {
-      setIsOAuthAuthenticating(false);
-      setIsOAuthModalOpen(false);
-      // Automatically refresh verification with new consent token
-      handleRequeryRegistries();
     }
   };
 
@@ -335,35 +185,37 @@ export const Layer3SourceVerification: React.FC<Props> = ({
     setTimeout(() => setCopiedReceipt(false), 2000);
   };
 
+  const hasPKIData = Boolean(institution?.layer3?.pkiCertificate);
   const pkiData = institution?.layer3?.pkiCertificate || {
-    subjectName: 'Dr. Ramesh Patil, Authorized Signatory',
-    issuerCN: 'e-Mudhra Sub-CA for Class 3 Individual',
-    serialNumber: '0x4A19B82C901E',
-    validFrom: '2023-04-10',
-    validTo: '2025-04-10',
-    keyAlgorithm: 'RSA 2048-bit',
-    signatureAlgorithm: 'SHA-256 with RSA Encryption',
+    subjectName: 'Not supplied',
+    issuerCN: 'Not checked',
+    serialNumber: 'Not available',
+    validFrom: 'Not available',
+    validTo: 'Not available',
+    keyAlgorithm: 'Not available',
+    signatureAlgorithm: 'Not available',
     digestMatch: false,
-    ocspStatus: 'GOOD' as const,
-    postSigningAlterationDetected: true,
-    bytesAlteredTrace: 'Offset 0x0041F90 - 0x0042008 modified after signature creation',
+    ocspStatus: 'UNKNOWN' as const,
+    postSigningAlterationDetected: false,
+    bytesAlteredTrace: '',
   };
 
+  const hasQRCode = Boolean(institution?.layer3?.qrCode);
   const qrData = institution?.layer3?.qrCode || {
-    foundOnPage: 1,
-    qrPayloadUrl: 'https://facilities.aicte-india.org/verify?ref=AICTE-APP-2025-SCR&h=89a7',
-    hmacSignatureValid: true,
-    issuerDomain: 'facilities.aicte-india.org',
-    trustedDomain: true,
+    foundOnPage: 0,
+    qrPayloadUrl: '',
+    hmacSignatureValid: false,
+    issuerDomain: '',
+    trustedDomain: false,
     embeddedMetadata: {
-      approvalRef: 'AICTE-APP-2025-SCR',
-      sanctionedYear: '2025-2026',
-      intakeApproved: 420,
-      authorizedSignatory: 'Member Secretary, AICTE New Delhi',
+      approvalRef: '',
+      sanctionedYear: '',
+      intakeApproved: 0,
+      authorizedSignatory: '',
     },
   };
 
-  const currentOutcome = sourceReceipt?.outcome || 'MISMATCH';
+  const currentOutcome = sourceReceipt?.outcome || 'UNAVAILABLE';
 
   // Get outcome badge styling
   const getOutcomeBadge = (outcome: DigiLockerOutcome) => {
@@ -388,7 +240,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
         };
       case 'UNAVAILABLE':
         return {
-          label: 'UNAVAILABLE (OFFLINE)',
+          label: 'NOT CONNECTED',
           bg: 'bg-slate-200 text-slate-800 border-slate-300',
           icon: <ServerOff className="w-3.5 h-3.5 text-slate-600" />,
         };
@@ -404,7 +256,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
   const outcomeBadge = getOutcomeBadge(currentOutcome);
 
   // Compute live trust score
-  const computedTrustScore =
+  const computedTrustScore = currentOutcome === 'UNAVAILABLE' ? null : (
     currentOutcome === 'MATCH' && pkiData.digestMatch
       ? 96
       : currentOutcome === 'MATCH'
@@ -413,9 +265,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
       ? 34
       : currentOutcome === 'PENDING'
       ? 50
-      : currentOutcome === 'UNAVAILABLE'
-      ? 45
-      : 55;
+      : 55);
 
   return (
     <div className="space-y-6 font-sans-modern">
@@ -428,16 +278,14 @@ export const Layer3SourceVerification: React.FC<Props> = ({
                 LAYER 3 • AUTHORITATIVE RECONCILIATION
               </span>
               <span className="text-xs text-[#2B1609]/70 font-semibold">
-                NeGD API Setu DigiLocker Sandbox • State Land Registries • PKI X.509 • 2D QR Code
+                Registry references • OAuth / issuer adapter not configured • signature and QR checks shown only when evidence is supplied
               </span>
             </div>
             <h2 className="font-cinzel font-bold text-xl md:text-2xl text-[#4A1504]">
-              DigiLocker Registry Handshake & Cryptographic Source Proof
+              Registry Verification Status
             </h2>
             <p className="text-xs text-[#2B1609]/80 leading-relaxed max-w-3xl">
-              Connects directly to authorized state land registries (e-Mahabhumi, UP e-Bhulekh, Bhoomi KA),
-              enforces citizen/signatory OAuth 2.0 consent via NeGD API Setu, and delivers tamper-evident
-              source verification receipts committed to the Layer 6 audit tree.
+              Registry names are reference options only. No authorization, issuer lookup, token exchange, or signed source receipt is available in this prototype, so a match cannot be reported.
             </p>
           </div>
 
@@ -449,7 +297,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
             >
               <UserCheck className="w-3.5 h-3.5 text-[#4A1504]" />
               <span>DigiLocker OAuth (NeGD)</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
             </button>
 
             {/* Re-Query Registries Button */}
@@ -459,13 +307,15 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               className="flex items-center gap-2 px-4 py-2 bg-[#4A1504] hover:bg-[#2B1609] text-[#F5E6C8] rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer disabled:opacity-60"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin' : ''}`} />
-              <span>{isVerifying ? 'Querying State Registry...' : 'Re-Query Registries'}</span>
+              <span>{isVerifying ? 'Checking integration status...' : 'Check integration status'}</span>
             </button>
 
             {/* Source Trust Index */}
             <div
               className={`p-3 rounded-xl border text-right min-w-[100px] ${
-                computedTrustScore > 75
+                computedTrustScore === null
+                  ? 'bg-slate-100 text-slate-700 border-slate-300'
+                  : computedTrustScore > 75
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                   : computedTrustScore > 45
                   ? 'bg-amber-50 text-amber-800 border-amber-300'
@@ -473,12 +323,12 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               }`}
             >
               <span className="text-[10px] uppercase font-bold opacity-75 block">Trust Index</span>
-              <span className="font-mono font-extrabold text-lg">{computedTrustScore}%</span>
+              <span className="font-mono font-extrabold text-lg">{computedTrustScore === null ? 'N/A' : `${computedTrustScore}%`}</span>
             </div>
           </div>
         </div>
 
-        {/* Regulatory Outcome Selector Bar & Registry Switcher */}
+        {/* Registry selection is informational until a provider is configured. */}
         <div className="mt-5 pt-4 border-t border-[#D4AF37]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-[#4A1504]">Target Registry:</span>
@@ -486,7 +336,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               value={selectedRegistryId}
               onChange={(e) => {
                 setSelectedRegistryId(e.target.value);
-                // Trigger query with newly selected registry
+                // Refresh the unavailable integration status for the selected reference.
                 setTimeout(() => handleRequeryRegistries(), 50);
               }}
               className="px-2.5 py-1.5 rounded-lg border border-[#D4AF37]/60 bg-white text-[#4A1504] text-xs font-medium focus:outline-none focus:ring-1 focus:ring-[#4A1504] cursor-pointer"
@@ -499,38 +349,12 @@ export const Layer3SourceVerification: React.FC<Props> = ({
             </select>
           </div>
 
-          {/* Explicit Regulatory Outcome Simulator Buttons */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-semibold text-[#2B1609]/70 text-[11px] mr-1">
-              Simulate Outcome:
-            </span>
-            {(['AUTO', 'MATCH', 'MISMATCH', 'PENDING', 'UNAVAILABLE', 'MANUAL_REVIEW'] as const).map(
-              (o) => {
-                const isActive = requestedOutcome === o;
-                return (
-                  <button
-                    key={o}
-                    onClick={() => {
-                      setRequestedOutcome(o);
-                      handleRequeryRegistries(o === 'AUTO' ? undefined : o);
-                    }}
-                    className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-[#4A1504] text-[#F5E6C8] shadow-xs'
-                        : 'bg-[#FAF4E8] text-[#2B1609]/80 border border-[#D4AF37]/40 hover:bg-[#F5E6C8]'
-                    }`}
-                  >
-                    {o}
-                  </button>
-                );
-              }
-            )}
-          </div>
+          <span className="rounded-lg border border-slate-300 bg-slate-100 px-3 py-1.5 text-[10px] font-semibold text-slate-700">Integration status: not configured</span>
         </div>
 
         {apiError && (
           <div className="mt-3 p-2.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between">
-            <span>Notice: {apiError} (Fallback sandbox simulation active)</span>
+            <span>Notice: {apiError}. No fallback or synthetic verification result was used.</span>
           </div>
         )}
       </div>
@@ -548,7 +372,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
                     DigiLocker Land Registry
                   </h3>
                   <span className="text-[10px] text-[#2B1609]/60 block">
-                    NeGD API Setu Connected
+                    Not connected · reference only
                   </span>
                 </div>
               </div>
@@ -565,7 +389,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">Endpoint:</span>
                 <span className="font-mono text-[#4A1504] font-semibold truncate max-w-[180px]">
-                  {sourceReceipt?.registry_name || 'Maharashtra e-Mahabhumi'}
+                  {sourceReceipt?.registry_name || 'No issuer selected'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -575,24 +399,20 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">Authoritative Deed:</span>
                 <span className="font-mono font-bold text-[#2B1609]">
-                  {sourceReceipt?.authoritative_record?.deed_number || 'DEED-PUN-2019-9821'}
+                  {sourceReceipt?.authoritative_record?.deed_number || 'Not supplied'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">Registered Owner:</span>
                 <span className="font-medium text-[#2B1609] truncate max-w-[190px]">
                   {sourceReceipt?.authoritative_record?.registered_owner ||
-                    (currentOutcome === 'PENDING'
-                      ? 'Consent Awaited'
-                      : currentOutcome === 'UNAVAILABLE'
-                      ? 'Registry Down'
-                      : 'M/s Industrial Agro Farms Pvt Ltd')}
+                    'Not available - no issuer response'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">API Latency:</span>
                 <span className="font-mono text-emerald-700 font-bold">
-                  {sourceReceipt?.api_latency_ms || 184} ms
+                  {sourceReceipt?.api_latency_ms != null ? `${sourceReceipt.api_latency_ms} ms` : 'N/A - no request sent'}
                 </span>
               </div>
             </div>
@@ -655,9 +475,9 @@ export const Layer3SourceVerification: React.FC<Props> = ({
 
           <div className="pt-2 text-[10px] text-[#2B1609]/70 font-mono flex items-center justify-between border-t border-[#D4AF37]/20">
             <span className="truncate max-w-[200px]">
-              OAuth: {oauthTokenState.accessToken.substring(0, 18)}...
+              OAuth: {oauthTokenState.accessToken ? 'Token available' : 'Not configured'}
             </span>
-            <span className="text-emerald-700 font-bold">NeGD Sandbox</span>
+            <span className="text-slate-600 font-bold">No active session</span>
           </div>
         </div>
 
@@ -678,12 +498,14 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               </div>
               <span
                 className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                  pkiData.digestMatch
+                  !hasPKIData
+                    ? 'bg-slate-100 text-slate-700 border border-slate-300'
+                    : pkiData.digestMatch
                     ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                     : 'bg-red-100 text-red-800 border border-red-300'
                 }`}
               >
-                {pkiData.digestMatch ? 'VALID DSC' : 'DIGEST CORRUPT'}
+                {!hasPKIData ? 'NOT CHECKED' : pkiData.digestMatch ? 'VALID DSC' : 'DIGEST MISMATCH'}
               </span>
             </div>
 
@@ -708,8 +530,8 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-[#2B1609]/70">OCSP Status:</span>
-                <span className="font-semibold text-emerald-700">
-                  {pkiData.ocspStatus} (Good)
+                <span className={`font-semibold ${hasPKIData && pkiData.ocspStatus === 'GOOD' ? 'text-emerald-700' : 'text-slate-600'}`}>
+                  {hasPKIData ? pkiData.ocspStatus : 'Not checked'}
                 </span>
               </div>
             </div>
@@ -717,19 +539,25 @@ export const Layer3SourceVerification: React.FC<Props> = ({
             {/* Cryptographic Alteration Callout */}
             <div
               className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${
-                pkiData.postSigningAlterationDetected
+                !hasPKIData
+                  ? 'bg-slate-100 border-slate-300 text-slate-800'
+                  : pkiData.postSigningAlterationDetected
                   ? 'bg-red-50 border-red-300 text-red-950'
                   : 'bg-emerald-50 border-emerald-300 text-emerald-950'
               }`}
             >
               <div className="flex items-center gap-2">
-                {pkiData.postSigningAlterationDetected ? (
+                {!hasPKIData ? (
+                  <Key className="w-4 h-4 text-slate-600" />
+                ) : pkiData.postSigningAlterationDetected ? (
                   <Unlock className="w-4 h-4 text-red-600" />
                 ) : (
                   <Lock className="w-4 h-4 text-emerald-600" />
                 )}
                 <span className="font-bold text-[11px]">
-                  {pkiData.postSigningAlterationDetected
+                  {!hasPKIData
+                    ? 'No signature evidence supplied; validation not run'
+                    : pkiData.postSigningAlterationDetected
                     ? 'Unauthorized Post-Signing Modification Detected'
                     : 'Cryptographic Document Integrity Intact'}
                 </span>
@@ -743,7 +571,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
           </div>
 
           <div className="pt-2 text-[10px] text-[#2B1609]/70 font-mono border-t border-[#D4AF37]/20">
-            Root CA: Controller of Certifying Authorities (CCA India)
+            Certificate chain: not checked against an issuer
           </div>
         </div>
 
@@ -762,12 +590,14 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               </div>
               <span
                 className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                  qrData.hmacSignatureValid
+                  !hasQRCode
+                    ? 'bg-slate-100 text-slate-700 border border-slate-300'
+                    : qrData.hmacSignatureValid
                     ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                     : 'bg-red-100 text-red-800 border border-red-300'
                 }`}
               >
-                {qrData.hmacSignatureValid ? 'HMAC VALID' : 'HMAC FAKE'}
+                {!hasQRCode ? 'NO QR SUPPLIED' : qrData.hmacSignatureValid ? 'HMAC VALID' : 'HMAC INVALID'}
               </span>
             </div>
 
@@ -781,16 +611,16 @@ export const Layer3SourceVerification: React.FC<Props> = ({
                   Decoded URL
                 </span>
                 <p className="font-mono text-[11px] truncate text-[#4A1504] font-semibold">
-                  {qrData.qrPayloadUrl}
+                  {qrData.qrPayloadUrl || 'No QR payload supplied'}
                 </p>
                 <div className="flex items-center gap-1.5 text-[10px]">
                   <span>Domain Trust:</span>
                   <span
                     className={`font-bold ${
-                      qrData.trustedDomain ? 'text-emerald-700' : 'text-red-700'
+                      !hasQRCode ? 'text-slate-600' : qrData.trustedDomain ? 'text-emerald-700' : 'text-red-700'
                     }`}
                   >
-                    {qrData.trustedDomain ? 'Official AICTE Domain' : 'Untrusted / Spoofed Domain'}
+                    {!hasQRCode ? 'Not checked' : qrData.trustedDomain ? 'Trusted domain' : 'Untrusted domain'}
                   </span>
                 </div>
               </div>
@@ -820,13 +650,13 @@ export const Layer3SourceVerification: React.FC<Props> = ({
           </div>
 
           <div className="pt-2 text-[10px] text-[#2B1609]/70 font-mono border-t border-[#D4AF37]/20">
-            Public Key: keys.aicte-india.org/master-root-2024.pub
+            QR issuer key: not configured
           </div>
         </div>
       </div>
 
       {/* Returned Cryptographic Source Verification Receipt Card */}
-      {sourceReceipt && (
+      {sourceReceipt?.receipt_id && (
         <div className="p-5 rounded-2xl bg-[#FAF4E8] border border-[#D4AF37] shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#D4AF37]/40">
             <div className="flex items-center gap-2">
@@ -867,7 +697,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               <span className="text-[10px] uppercase font-bold text-[#2B1609]/60 block font-sans">
                 Payload SHA-256 Digest
               </span>
-              <p className="text-[11px] text-[#4A1504] truncate font-semibold" title={sourceReceipt.raw_payload_digest}>
+              <p className="text-[11px] text-[#4A1504] truncate font-semibold" title={sourceReceipt.raw_payload_digest ?? undefined}>
                 {sourceReceipt.raw_payload_digest}
               </p>
               <span className="text-[9px] text-emerald-700 block">Verified Deterministic Canonical Hash</span>
@@ -877,7 +707,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               <span className="text-[10px] uppercase font-bold text-[#2B1609]/60 block font-sans">
                 NeGD Setu HMAC-SHA256 Signature
               </span>
-              <p className="text-[11px] text-emerald-800 truncate font-semibold" title={sourceReceipt.hmac_signature}>
+              <p className="text-[11px] text-emerald-800 truncate font-semibold" title={sourceReceipt.hmac_signature ?? undefined}>
                 {sourceReceipt.hmac_signature}
               </p>
               <span className="text-[9px] text-[#2B1609]/60 block">Signed via Master Gov Secret</span>
@@ -887,7 +717,7 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               <span className="text-[10px] uppercase font-bold text-[#2B1609]/60 block font-sans">
                 Layer 6 Merkle Leaf Hash
               </span>
-              <p className="text-[11px] text-[#4A1504] truncate font-semibold" title={sourceReceipt.merkle_leaf_hash}>
+              <p className="text-[11px] text-[#4A1504] truncate font-semibold" title={sourceReceipt.merkle_leaf_hash ?? undefined}>
                 {sourceReceipt.merkle_leaf_hash}
               </p>
               <span className="text-[9px] text-[#D4AF37] block font-bold">Ready for Merkle Block Commit</span>
@@ -905,10 +735,10 @@ export const Layer3SourceVerification: React.FC<Props> = ({
                 <Database className="w-6 h-6 text-[#4A1504]" />
                 <div>
                   <h3 className="font-cinzel font-bold text-lg text-[#4A1504]">
-                    DigiLocker Developer Sandbox (NeGD)
+                    DigiLocker OAuth connection unavailable
                   </h3>
                   <span className="text-xs text-[#2B1609]/70 font-semibold">
-                    National e-Governance Division • API Setu OAuth 2.0
+                    This local prototype has no configured OAuth client
                   </span>
                 </div>
               </div>
@@ -922,32 +752,30 @@ export const Layer3SourceVerification: React.FC<Props> = ({
 
             <div className="space-y-3 text-xs text-[#2B1609]">
               <p className="leading-relaxed">
-                Demonstrates AICTE's integration with the official DigiLocker Sandbox gateway. In accordance
-                with the Problem Statement, documents are fetched exclusively with cryptographic citizen/trustee
-                consent token.
+                No OAuth request will be sent from this prototype. A real client ID, approved redirect URI, credentials, and provider setup are required before consent or registry retrieval can be demonstrated.
               </p>
 
               <div className="p-3.5 bg-white/80 rounded-2xl border border-[#D4AF37]/50 space-y-2 font-mono text-[11px]">
                 <div className="flex justify-between">
                   <span className="text-[#2B1609]/60 font-sans">Client ID:</span>
-                  <span className="font-bold text-[#4A1504]">AICTE_SETU_SANDBOX_2026</span>
+                  <span className="font-bold text-slate-700">Not configured</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#2B1609]/60 font-sans">Redirect URI:</span>
-                  <span className="truncate max-w-[240px]">http://localhost:5173/oauth/callback</span>
+                  <span className="truncate max-w-[240px]">Not configured</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#2B1609]/60 font-sans">Consent Artifact:</span>
-                  <span className="font-bold text-emerald-800">{oauthTokenState.consentArtifactId}</span>
+                  <span className="font-bold text-slate-700">None</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#2B1609]/60 font-sans">Signatory Aadhaar (Last 4):</span>
-                  <span className="font-bold">XXXX-XXXX-{oauthTokenState.citizenAadhaarLast4}</span>
+                  <span className="font-bold">Not requested</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#2B1609]/60 font-sans">Current Status:</span>
                   <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                    {oauthTokenState.status}
+                    NOT CONFIGURED
                   </span>
                 </div>
               </div>
@@ -955,14 +783,14 @@ export const Layer3SourceVerification: React.FC<Props> = ({
               {/* Handshake Sequence Preview */}
               <div className="p-3 bg-[#FAF4E8] rounded-xl border border-[#D4AF37]/40 space-y-1.5 text-[11px]">
                 <span className="font-cinzel font-bold text-[#4A1504] block">
-                  OAuth 2.0 Handshake Pipeline
+                  Integration prerequisites
                 </span>
                 <ol className="list-decimal pl-4 space-y-1 text-[#2B1609]/80 font-mono text-[10px]">
-                  <li>Initiate: /api/v1/verification/digilocker/oauth/authorize</li>
-                  <li>Consent: Citizen biometric / OTP auth on MeriPehchaan Sandbox</li>
-                  <li>Token Exchange: /api/v1/verification/digilocker/oauth/token</li>
-                  <li>Authoritative Pull: Fetches Bhulekh 7/12 & Khasra XML via API Setu</li>
-                  <li>Seal: HMAC-SHA256 digest & Merkle Leaf Node appended to Audit Ledger</li>
+                  <li>Obtain authorized sandbox/production client credentials</li>
+                  <li>Register and validate an approved callback URL</li>
+                  <li>Implement real authorization-code and state validation</li>
+                  <li>Call registry services and retain their response provenance</li>
+                  <li>Create a receipt only from a verified provider response</li>
                 </ol>
               </div>
             </div>
@@ -975,13 +803,12 @@ export const Layer3SourceVerification: React.FC<Props> = ({
                 Close
               </button>
               <button
-                onClick={handleSimulateOAuthConsent}
-                disabled={isOAuthAuthenticating}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#4A1504] hover:bg-[#2B1609] text-[#F5E6C8] rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-60"
+                disabled
+                className="flex items-center gap-2 px-5 py-2.5 bg-slate-300 text-slate-700 rounded-xl text-xs font-bold shadow-md cursor-not-allowed"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isOAuthAuthenticating ? 'animate-spin' : ''}`} />
+                <RefreshCw className="w-3.5 h-3.5" />
                 <span>
-                  {isOAuthAuthenticating ? 'Exchanging OAuth Tokens...' : 'Grant Consent & Re-Exchange Token'}
+                  OAuth client not configured
                 </span>
               </button>
             </div>
