@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import campusImage from './assets/satya-campus.jpg';
+import campusImage from './assets/satya-campus.webp';
 import { gsap } from 'gsap';
 import { ThreeBackground } from './components/ThreeBackground';
 import { DocumentFindingsView, type ScrutinyResult } from './components/DocumentFindingsView';
