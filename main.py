@@ -5,8 +5,10 @@ import shutil
 import tempfile
 from typing import Any, Dict, Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile, status
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.forensics.ela_checker import analyze_document_forensics
 from app.ingestion.layout_engine import LayoutLMv3IngestionEngine
@@ -21,13 +23,14 @@ from app.schemas.payload import (
     SourceVerificationReceipt,
 )
 from app.routers.analytics_router import router as analytics_router
+from app.routers.problem_statements_router import router as problem_statements_router
 from app.verification.source_verifier import verify_authoritative_source
 
 # Initialize FastAPI application
 app = FastAPI(
-    title="AICTE Compliance Engine API",
+    title="AICTE Compliance Engine & Problem Statement Provider Portal API",
     version="1.0.0",
-    description="Layer 1 Layout Analysis | Layer 2 Visual Forensics | Layer 3 Authoritative Source Verification | Layer 4 Agentic GraphRAG | Layer 5 Analytics & Audit Reporting",
+    description="Layer 1 Layout Analysis | Layer 2 Visual Forensics | Layer 3 Authoritative Source Verification | Layer 4 Agentic GraphRAG | Layer 5 Analytics & Audit Reporting | Problem Statement Provider Portal",
 )
 
 # Configure CORS
@@ -39,8 +42,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register Layer 5 Analytics & Reporting Router
+# Register Layer 5 Analytics & Reporting Router and Problem Statement Portal Router
 app.include_router(analytics_router)
+app.include_router(problem_statements_router)
 
 # Engine singleton holder (lazy initialization to optimize startup time)
 _layout_engine: Optional[LayoutLMv3IngestionEngine] = None
@@ -55,12 +59,18 @@ def get_layout_engine() -> LayoutLMv3IngestionEngine:
 
 
 @app.get("/", tags=["Health"])
-async def root() -> Dict[str, str]:
-    """Root status endpoint."""
+async def root(request: Request) -> Any:
+    """Root endpoint: serves the AICTE Problem Statement Provider Portal if requested via browser, or JSON API status."""
+    frontend_index = os.path.join(os.path.dirname(__file__), "frontend", "dist", "index.html")
+    accept_header = request.headers.get("accept", "")
+    if "text/html" in accept_header and os.path.exists(frontend_index):
+        return FileResponse(frontend_index)
     return {
         "status": "online",
-        "service": "AICTE Compliance Engine",
-        "layers": "Layer 1 - Ingestion | Layer 2 - Visual Forensics | Layer 3 - Source Verification | Layer 4 - Agentic GraphRAG | Layer 5 - Analytics & Audit Reporting",
+        "service": "AICTE Compliance Engine & Problem Statement Provider Portal",
+        "layers": "Layer 1 Ingestion | Layer 2 Forensics | Layer 3 Source Verification | Layer 4 GraphRAG | Layer 5 Analytics | PS Provider Portal",
+        "portal_url": "/portal",
+        "docs_url": "/docs",
         "version": "1.0.0",
     }
 
@@ -286,6 +296,17 @@ async def compliance_audit_endpoint(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Compliance audit orchestration failed: {str(exc)}",
         )
+
+
+# Mount Frontend Assets & Static Portal
+_frontend_dist = os.path.join(os.path.dirname(__file__), "frontend", "dist")
+_frontend_assets = os.path.join(_frontend_dist, "assets")
+
+if os.path.exists(_frontend_assets):
+    app.mount("/assets", StaticFiles(directory=_frontend_assets), name="assets")
+
+if os.path.exists(_frontend_dist):
+    app.mount("/portal", StaticFiles(directory=_frontend_dist, html=True), name="portal")
 
 
 if __name__ == "__main__":

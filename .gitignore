@@ -35,3 +35,5 @@ Desktop.ini
 # Temporary logs & scratch
 *.log
 scratch/
+assets_extracted/
+frontend/node_modules/

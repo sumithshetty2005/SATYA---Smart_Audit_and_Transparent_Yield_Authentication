@@ -118,3 +118,31 @@ python tests/test_eval_scenarios.py
 - `GET /api/v1/analytics/dashboard-summary`: Layer 5 Aggregated dashboard statistics, approval rates, and anomaly alerts.
 - `GET /api/v1/analytics/anomalies`: Layer 5 List of detected cross-institutional land/faculty collisions.
 - `GET /api/v1/analytics/health-index`: Layer 5 Institutional Health Index (IHI) rankings and recommendations.
+- `GET /api/v1/problem-statements`: Problem Statement Provider Portal challenge list with multi-parameter filtering.
+- `POST /api/v1/problem-statements/submit-ticket`: "Ticket-Flow" Challenge queueing with real-time AICTE regulatory pre-check.
+- `GET /api/v1/problem-statements/stats`: Platform metrics and active grant totals.
+- `POST /api/v1/problem-statements/{id}/apply`: Student/Innovator proposal submission endpoint.
+
+---
+
+## 🏛️ AICTE Problem Statement Provider Portal
+
+The application includes a responsive web application celebrating the **Vedic Architectural Aesthetic** of the AICTE Approval Process Handbook (APH 2024–2027) cover, fused with **Squared-Inspired Card Motion Architecture**:
+
+- **Vedic Aesthetic**: Vintage parchment texture, distressed gold leaf filigree borders, Maharishi Baudhayana (800 BCE) cutout, Sulba-Sutra Sanskrit Shloka (`दीर्घचतुरस्रस्याक्ष्णया रज्जुः...`), and Pythagorean geometric proof diagram ($c^2 = a^2 + b^2$).
+- **3D Gyroscopic Card System**: Tilt physics, multi-layer depth parallax (`translateZ`), dynamic cursor spotlight glow, and live interactive simulation canvases (`CardMediaReel`).
+- **Ticket-Flow Module**: 4-step challenge creation wizard for Ministries, PSUs, and Industry with real-time card preview and SHA-256 provenance verification receipt.
+- **Three.js WebGL Engine**: Ambient golden dust particles and rotating 3D Sacred Geometry Mandala.
+
+### Starting the Frontend & Backend:
+
+```bash
+# 1. Start FastAPI Backend (Port 8000)
+python main.py
+
+# 2. Start React + Vite Frontend (Port 5173 with auto-proxy to 8000)
+cd frontend
+npm install
+npm run dev
+```
+Visit `http://localhost:5173` or `http://localhost:8000` to interact with the portal!
