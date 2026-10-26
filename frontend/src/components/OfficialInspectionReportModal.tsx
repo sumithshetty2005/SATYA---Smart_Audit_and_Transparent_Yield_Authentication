@@ -81,11 +81,9 @@ export const OfficialInspectionReportModal: React.FC<Props> = ({
             {/* Document Header */}
             <div className="text-center pb-6 border-b-2 border-[#4A1504]/20 relative z-10">
               <div className="flex justify-center items-center gap-4 mb-3">
-                <img
-                  src="/assets/aicte_logo_crop.png"
-                  alt="AICTE Crest"
-                  className="w-16 h-16 object-contain"
-                />
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-[#D4AF37] bg-[#4A1504] shadow-md" aria-label="SATYA logo">
+                  <ShieldCheck className="h-9 w-9 text-[#D4AF37]" strokeWidth={1.8} />
+                </div>
               </div>
               <h1 className="font-vedic text-xl md:text-2xl font-bold tracking-wide text-[#4A1504]">
                 अखिल भारतीय तकनीकी शिक्षा परिषद

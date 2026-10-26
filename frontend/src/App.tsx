@@ -548,30 +548,11 @@ export function App() {
             </div>
 
             <div className="relative min-h-[300px] overflow-hidden bg-[#263C3C] sm:min-h-[360px] lg:min-h-0" role="img" aria-label="Illustration of an institutional campus with an evidence review document">
-              <svg viewBox="0 0 1000 760" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" aria-hidden="true">
-                <defs>
-                  <linearGradient id="satya-sky" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#C9B895" /><stop offset=".52" stopColor="#748B7D" /><stop offset="1" stopColor="#263C3C" /></linearGradient>
-                  <linearGradient id="satya-building" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#D6C6A5" /><stop offset="1" stopColor="#8C7555" /></linearGradient>
-                  <linearGradient id="satya-shade" x1="0" y1="0" x2="1" y2="0"><stop stopColor="#172D2D" stopOpacity=".6" /><stop offset=".7" stopColor="#172D2D" stopOpacity="0" /></linearGradient>
-                  <pattern id="satya-grid" width="42" height="42" patternUnits="userSpaceOnUse"><path d="M42 0H0V42" fill="none" stroke="#F6EAD1" strokeOpacity=".13" strokeWidth="1" /></pattern>
-                </defs>
-                <rect width="1000" height="760" fill="url(#satya-sky)" />
-                <circle cx="792" cy="132" r="92" fill="#E9D6A5" fillOpacity=".62" />
-                <path d="M0 395 Q110 270 208 356 Q279 210 392 333 Q498 190 619 350 Q750 205 863 331 Q927 268 1000 328V520H0Z" fill="#243F38" fillOpacity=".9" />
-                <path d="M0 434 Q133 335 257 414 Q365 310 493 406 Q624 297 754 403 Q892 304 1000 400V545H0Z" fill="#365648" />
-                <path d="M84 438 L84 302 L500 232 L916 302 L916 438Z" fill="url(#satya-building)" stroke="#594832" strokeWidth="8" />
-                <path d="M54 307 L500 202 L947 307 L947 333 L500 235 L54 333Z" fill="#E1D2B2" stroke="#594832" strokeWidth="8" />
-                <path d="M112 296 L500 167 L888 296Z" fill="#8E7958" stroke="#594832" strokeWidth="8" />
-                <path d="M168 298 L500 190 L832 298" fill="none" stroke="#E7D9BA" strokeWidth="14" />
-                <g fill="#4A4A3A" stroke="#594832" strokeWidth="5">
-                  <path d="M150 325h58v113h-58z" /><path d="M260 325h58v113h-58z" /><path d="M371 325h58v113h-58z" />
-                  <path d="M481 325h58v113h-58z" /><path d="M591 325h58v113h-58z" /><path d="M702 325h58v113h-58z" /><path d="M812 325h58v113h-58z" />
-                </g>
-                <path d="M0 438H1000V760H0Z" fill="#9C8057" />
-                <path d="M0 520 Q295 457 558 522 Q804 582 1000 494V760H0Z" fill="#6D6347" />
-                <path d="M0 0H1000V760H0Z" fill="url(#satya-grid)" />
-                <path d="M0 0H580V760H0Z" fill="url(#satya-shade)" />
-              </svg>
+              <img
+                src="/assets/satya-campus.jpg"
+                alt="University campus with historic brick academic buildings and a landscaped courtyard"
+                className="absolute inset-0 h-full w-full object-cover object-center"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-[#182B27]/45 via-transparent to-[#182B27]/10" />
               <div className="absolute left-5 top-5 flex items-center gap-2 border border-white/30 bg-[#F8F1E5]/90 px-3 py-2 text-[10px] font-semibold tracking-wide text-[#35180D] shadow-lg backdrop-blur sm:left-8 sm:top-8">
                 <ShieldCheck className="h-4 w-4 text-[#9A7429]" /> Evidence, connected to each review
