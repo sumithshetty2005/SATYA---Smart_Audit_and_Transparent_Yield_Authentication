@@ -20,13 +20,14 @@ from app.schemas.payload import (
     ForensicsResponse,
     SourceVerificationReceipt,
 )
+from app.routers.analytics_router import router as analytics_router
 from app.verification.source_verifier import verify_authoritative_source
 
 # Initialize FastAPI application
 app = FastAPI(
     title="AICTE Compliance Engine API",
     version="1.0.0",
-    description="Layer 1 Layout Analysis | Layer 2 Visual Forensics | Layer 3 Authoritative Source Verification | Layer 4 Agentic GraphRAG & Regulatory Engine",
+    description="Layer 1 Layout Analysis | Layer 2 Visual Forensics | Layer 3 Authoritative Source Verification | Layer 4 Agentic GraphRAG | Layer 5 Analytics & Audit Reporting",
 )
 
 # Configure CORS
@@ -37,6 +38,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register Layer 5 Analytics & Reporting Router
+app.include_router(analytics_router)
 
 # Engine singleton holder (lazy initialization to optimize startup time)
 _layout_engine: Optional[LayoutLMv3IngestionEngine] = None
@@ -56,7 +60,7 @@ async def root() -> Dict[str, str]:
     return {
         "status": "online",
         "service": "AICTE Compliance Engine",
-        "layers": "Layer 1 - Ingestion | Layer 2 - Visual Forensics | Layer 3 - Source Verification | Layer 4 - Agentic GraphRAG",
+        "layers": "Layer 1 - Ingestion | Layer 2 - Visual Forensics | Layer 3 - Source Verification | Layer 4 - Agentic GraphRAG | Layer 5 - Analytics & Audit Reporting",
         "version": "1.0.0",
     }
 

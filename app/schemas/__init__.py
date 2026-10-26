@@ -24,6 +24,14 @@ from app.schemas.compliance import (
     ComplianceAuditRequest,
     ComplianceAuditResponse,
 )
+from app.schemas.analytics import (
+    LayerFiveReportRequest,
+    LayerFiveAuditReport,
+    InstitutionalSubmissionRecord,
+    InstitutionalHealthIndexResult,
+    CrossInstitutionalAnomaly,
+    DashboardSummaryResponse,
+)
 
 __all__ = [
     "LandDetails",
@@ -48,4 +56,10 @@ __all__ = [
     "RegulatoryFinding",
     "ComplianceAuditRequest",
     "ComplianceAuditResponse",
+    "LayerFiveReportRequest",
+    "LayerFiveAuditReport",
+    "InstitutionalSubmissionRecord",
+    "InstitutionalHealthIndexResult",
+    "CrossInstitutionalAnomaly",
+    "DashboardSummaryResponse",
 ]

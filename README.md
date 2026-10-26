@@ -7,7 +7,7 @@ SATYA is an intelligent, multi-layered regulatory auditing and document integrit
 
 ## 🏛️ Architecture Overview
 
-The system operates across **4 progressive verification layers**:
+The system operates across **5 progressive verification layers**:
 
 ```mermaid
 flowchart TD
@@ -15,7 +15,9 @@ flowchart TD
     L1 --> L2["Layer 2: Visual & Structural Forensics"]
     L2 --> L3["Layer 3: Cryptographic PKI & QR Verification"]
     L3 --> L4["Layer 4: Agentic GraphRAG & Regulatory Engine"]
-    L4 --> Report["Consolidated Compliance Audit Report"]
+    L4 --> L5["Layer 5: Analytics, Audit Reporting & Dashboard Integration"]
+    L5 --> Cert["Official AICTE Compliance Clearance Certificate (PDF/JSON)"]
+    L5 --> Dash["Executive Anomaly & Health Index Dashboard"]
 ```
 
 ### Layer 1: Document Ingestion & Layout Analysis (`app/ingestion/`)
@@ -33,13 +35,24 @@ flowchart TD
 
 ### Layer 4: Agentic GraphRAG & Regulatory Engine (`app/knowledge/`)
 - **Structure-Aware Chunking**: Hierarchical parsing of chapters, sections, tables, and clauses (~500–800 tokens, 10–15% overlap).
-- **Neo4j Knowledge Graph**: Seeds regulatory entities (`:RegulatoryClause`, `:Programme`, `:ApplicationType`, `:Requirement`, `:LocationType`, `:Exception`) and directed relationships (`:MANDATES`, `:HAS_EXCEPTION`, `:APPLIES_TO`).
+- **Neo4j Knowledge Graph**: Seeds regulatory entities (`:RegulatoryClause`, `:Programme`, `:ApplicationType`, `:Requirement`, `:LocationType`, `:Exception`, `:Level`, `:TERFee`) and directed relationships (`:MANDATES`, `:GOVERNED_BY`, `:HAS_EXCEPTION`, `:APPLIES_TO`, `:OFFERS_LEVEL`, `:REQUIRES_FEE`).
 - **Hybrid Retrieval & RRF**: Dual-path BM25 exact matching + BGE-M3 1024-dimensional dense vector embeddings fused via Reciprocal Rank Fusion ($k=60$).
 - **LangGraph Multi-Agent Orchestration**:
   - `Retriever Agent`: Queries hybrid stores and executes controlled 1- to 2-hop Neo4j traversals dynamically filtered on application facts.
   - `Compliance Evaluator Agent`: Audits Layer 1–3 outputs against APH statutory formulas.
   - `Audit Synthesizer Agent`: Synthesizes final regulatory verdicts citing exact APH clauses.
 - **Dual LLMs**: Primary Groq Llama 3.1 8B Instruct (`langchain-groq`) with automatic Google Gemini API fallback (`langchain-google-genai`) and deterministic offline evaluation.
+
+### Layer 5: Analytics, Audit Reporting & Dashboard Integration (`app/analytics/`)
+- **LayerFiveAnalyticsEngine (`report_generator.py`)**:
+  - Multi-layer synthesis producing unified `LayerFiveAuditReport` (JSON) and official publication-grade **AICTE Compliance Audit Clearance Certificates** (PDF) via ReportLab and PyMuPDF drawing.
+  - Includes receipt tracking UUID, timestamp, institution details, multi-layer trust score, and itemized breakdown tables for Visual Forensics (L2), Source Verification (L3), and GraphRAG Citations (L4).
+- **Institutional Health Index (IHI) (`dashboard_services.py`)**:
+  - Multi-factor historical/departmental performance scoring (Regulatory Compliance 35%, Forensic Authenticity 25%, Cryptographic Provenance 20%, Cadre/Infrastructure Stability 20%) with letter grades (`A+`, `A`, `B`, `C`).
+- **Cross-Institutional Anomaly Detection (`dashboard_services.py`)**:
+  - **Duplicate Land Parcel Detection**: Flags duplicate survey/plot/khasra numbers claimed across distinct institutions (double-pledging).
+  - **Ghost Faculty Collision Detection**: Flags concurrent full-time faculty appointments registered across distinct colleges.
+- **Frontend Dashboard Service**: Aggregates approval rates, risk level distribution, active anomalies, and recent audit feeds.
 
 ---
 
@@ -78,7 +91,12 @@ Interactive API documentation: `http://localhost:8000/docs`
 
 Run the core compliance test suite:
 ```bash
-python tests/test_compliance.py
+python -m pytest tests/test_compliance.py
+```
+
+Run the Layer 5 analytics, reporting & anomaly test suite:
+```bash
+python -m pytest tests/test_layer5_analytics.py
 ```
 
 Run the 8 APH 2024-2027 scenario evaluation benchmarks:
@@ -94,3 +112,9 @@ python tests/test_eval_scenarios.py
 - `POST /api/v1/forensics`: Layer 2 Visual Error Level Analysis & edge tampering detection.
 - `POST /api/v1/verify-source`: Layer 3 Authoritative PKI & 2D QR verification.
 - `POST /api/v1/compliance-audit`: Layer 4 Consolidated Agentic GraphRAG Regulatory Audit.
+- `POST /api/v1/reports/generate`: Layer 5 Synthesizes consolidated audit clearance report (JSON).
+- `POST /api/v1/reports/generate-pdf`: Layer 5 Streams official publication-grade AICTE Compliance Certificate (PDF).
+- `GET /api/v1/reports/download-pdf`: Layer 5 Downloads pre-generated audit certificate by Report ID.
+- `GET /api/v1/analytics/dashboard-summary`: Layer 5 Aggregated dashboard statistics, approval rates, and anomaly alerts.
+- `GET /api/v1/analytics/anomalies`: Layer 5 List of detected cross-institutional land/faculty collisions.
+- `GET /api/v1/analytics/health-index`: Layer 5 Institutional Health Index (IHI) rankings and recommendations.
