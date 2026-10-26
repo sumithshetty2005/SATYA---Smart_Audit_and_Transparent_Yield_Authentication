@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:match*",
-      "destination": "https://<YOUR-HF-USERNAME>-<YOUR-SPACE-NAME>.hf.space/api/:match*"
+      "destination": "https://sumith2005-aicte-compliance-backend.hf.space/api/:match*"
     },
     {
       "source": "/(.*)",
