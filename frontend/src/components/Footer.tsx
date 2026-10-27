@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 
 const footerLinks = [
   { href: '/', label: 'Home' },
@@ -17,8 +17,8 @@ export const Footer: React.FC = () => (
       <div className="grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-start">
         <div className="max-w-xl space-y-4">
           <a href="/" className="inline-flex items-center gap-3 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#D4AF37] bg-[#4A1504]">
-              <ShieldCheck className="h-6 w-6 text-[#D4AF37]" />
+            <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-[#D4AF37] bg-[#4A1504]">
+              <img src="/assets/satya-favicon.svg" alt="" aria-hidden="true" className="h-full w-full object-cover" />
             </span>
             <span>
               <span className="block font-cinzel text-lg font-bold text-[#FFF3B0]">SATYA</span>

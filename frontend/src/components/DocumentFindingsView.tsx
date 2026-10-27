@@ -10,6 +10,7 @@ import {
   Printer,
   RotateCcw,
   Award,
+  ClipboardList,
 } from 'lucide-react';
 import { DecisionSupportMatrix } from './DecisionSupportMatrix';
 import { Layer3SourceVerification } from './Layer3SourceVerification';
@@ -94,10 +95,69 @@ export const DocumentFindingsView: React.FC<Props> = ({
   onReset,
   onOpenReportModal,
 }) => {
-  const [activeTab, setActiveTab] = useState<'summary' | 'layer2' | 'layer3' | 'layer4' | 'layer5' | 'layer6'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'decisionBrief' | 'layer2' | 'layer3' | 'layer4' | 'layer5' | 'layer6'>('summary');
   const [elaSliderPos, setElaSliderPos] = useState<number>(50);
   const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
   const [expandedCitationId, setExpandedCitationId] = useState<string | null>(null);
+
+  const needsForensicReview = result.layer2.tamperingVerdict !== 'CLEAN';
+  const needsSourceReview = !result.layer3.pkiValid || !result.layer3.digiLockerMatch || result.layer3.postSigningBytesAltered || !result.layer3.qrPayloadValid;
+  const needsRuleReview = result.layer4.citations.length > 0;
+  const needsEvidenceReview = !result.layer5.geofenceValid || result.layer5.nearestFireExitM <= 0;
+  const hasReviewConcerns = needsForensicReview || needsSourceReview || needsRuleReview || needsEvidenceReview;
+  const decisionBriefActions = [
+    ...(needsRuleReview ? result.layer4.citations.map((citation) => ({
+      id: `rule-${citation.id}`,
+      priority: citation.severity.toUpperCase().includes('CRITICAL') ? 'High' : 'Review',
+      source: `${citation.aphClause} · ${citation.ruleTitle}`,
+      action: `Compare the cited threshold (${citation.statutoryThreshold}) with the referenced evidence (${citation.institutionalValue}); verify the clause and interpretation against the current official handbook.`,
+    })) : []),
+    ...(needsForensicReview ? [{
+      id: 'forensics-review',
+      priority: 'High',
+      source: `Layer 2 · ELA ${result.layer2.elaAnomalyScore}/100`,
+      action: 'Inspect the flagged regions and original pages in Visual Forensics. ELA and smoothing signals require human review and do not prove alteration.',
+    }] : []),
+    ...(!result.layer3.pkiValid ? [{
+      id: 'signature-review',
+      priority: 'Review',
+      source: 'Layer 3 · Digital signature',
+      action: 'Verify signature evidence against a trusted certificate chain. If verification was unavailable, obtain a verifiable original before relying on the claim.',
+    }] : []),
+    ...(!result.layer3.digiLockerMatch ? [{
+      id: 'issuer-review',
+      priority: 'Review',
+      source: 'Layer 3 · Issuer or registry match',
+      action: 'Confirm the source record with the issuing authority. An unavailable or absent match alone does not establish that a document is invalid.',
+    }] : []),
+    ...(result.layer3.postSigningBytesAltered ? [{
+      id: 'post-sign-review',
+      priority: 'High',
+      source: 'Layer 3 · Post-signing changes',
+      action: 'Review the reported byte changes and request the issuer-signed original or an explanation for the revision.',
+    }] : []),
+    ...(!result.layer3.qrPayloadValid ? [{
+      id: 'qr-review',
+      priority: 'Review',
+      source: 'Layer 3 · QR payload',
+      action: 'Check whether a QR payload was present and, if so, validate its destination and issuer response before using it as evidence.',
+    }] : []),
+    ...(!result.layer5.geofenceValid ? [{
+      id: 'location-review',
+      priority: 'Review',
+      source: 'Layer 5 · Location evidence',
+      action: 'Review the source image and location metadata. Missing or inconclusive GPS data should remain unverified, not be treated as a failure.',
+    }] : []),
+    ...(result.layer5.nearestFireExitM <= 0 ? [{
+      id: 'egress-review',
+      priority: 'Review',
+      source: 'Layer 5 · Fire-egress evidence',
+      action: 'Confirm the approved plan scale and measured route with a qualified reviewer; do not infer a route distance when it was not assessed.',
+    }] : []),
+  ];
+  const reviewerPosture = hasReviewConcerns
+    ? 'Continue review and resolve the listed evidence questions before recording a formal outcome.'
+    : 'No major flags appear in the checks represented here. Confirm source evidence and any unavailable checks before recording an outcome.';
 
   return (
     <div className="space-y-6 font-sans-modern scroll-mt-6" id="findings-section">
@@ -184,28 +244,35 @@ export const DocumentFindingsView: React.FC<Props> = ({
           {[
             { id: 'summary', label: 'Execution Dashboard', icon: <Award className="w-4 h-4" /> },
             {
+              id: 'decisionBrief',
+              label: 'Decision Brief',
+              icon: <ClipboardList className="w-4 h-4" />,
+              badge: `${decisionBriefActions.length} Actions`,
+              badgeColor: decisionBriefActions.length === 0 ? 'bg-emerald-600' : 'bg-amber-600',
+            },
+            {
               id: 'layer2',
-              label: '2. ELA Visual Forensics',
+              label: 'ELA Visual Forensics',
               icon: <Fingerprint className="w-4 h-4" />,
               badge: result.layer2.tamperingVerdict === 'CLEAN' ? 'Clean' : 'Tampered',
               badgeColor: result.layer2.tamperingVerdict === 'CLEAN' ? 'bg-emerald-600' : 'bg-red-600',
             },
             {
               id: 'layer3',
-              label: '3. DigiLocker & PKI',
+              label: 'DigiLocker & PKI',
               icon: <Database className="w-4 h-4" />,
               badge: result.layer3.pkiValid ? 'Valid' : 'Digest Error',
               badgeColor: result.layer3.pkiValid ? 'bg-emerald-600' : 'bg-red-600',
             },
             {
               id: 'layer4',
-              label: '4. GraphRAG APH Rules',
+              label: 'GraphRAG APH Rules',
               icon: <Network className="w-4 h-4" />,
               badge: `${result.layer4.citations.length} Gaps`,
               badgeColor: result.layer4.citations.length === 0 ? 'bg-emerald-600' : 'bg-red-600',
             },
-            { id: 'layer5', label: '5. Vision CV & CAD', icon: <Eye className="w-4 h-4" /> },
-            { id: 'layer6', label: '6. Merkle Audit Chain', icon: <Scroll className="w-4 h-4" /> },
+            { id: 'layer5', label: 'Vision CV & CAD', icon: <Eye className="w-4 h-4" /> },
+            { id: 'layer6', label: 'Merkle Audit Chain', icon: <Scroll className="w-4 h-4" /> },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -345,36 +412,165 @@ export const DocumentFindingsView: React.FC<Props> = ({
         </div>
       )}
 
+      {/* Tab Content: Decision Brief for human review */}
+      {activeTab === 'decisionBrief' && (
+        <div className="space-y-5">
+          <section className="rounded-2xl border border-[#D4AF37]/45 bg-white/75 p-5 shadow-sm md:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-3xl">
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#9A7429]">Human decision support · {result.fileName}</p>
+                <h3 className="mt-1 font-cinzel text-xl font-bold text-[#4A1504]">Decision Brief &amp; Reviewer Action List</h3>
+                <p className="mt-2 text-xs leading-relaxed text-[#2B1609]/75">
+                  This brief consolidates the current document, forensics, source, rule, and infrastructure outputs. It organizes questions for the reviewing official; it does not issue or replace a formal decision.
+                </p>
+              </div>
+              <div className={`shrink-0 rounded-xl border px-4 py-3 ${hasReviewConcerns ? 'border-amber-300 bg-amber-50 text-amber-950' : 'border-emerald-300 bg-emerald-50 text-emerald-950'}`}>
+                <span className="block text-[9px] font-bold uppercase tracking-wider opacity-70">Suggested reviewer posture</span>
+                <span className="mt-1 block max-w-xs text-xs font-semibold leading-relaxed">{reviewerPosture}</span>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-xl border border-[#D4AF37]/30 bg-[#FAF4E8] p-3">
+                <span className="block text-[9px] font-bold uppercase tracking-wide text-[#765A35]">Current system output</span>
+                <strong className="mt-1 block font-cinzel text-sm text-[#4A1504]">{result.verdict.replace('_', ' ')}</strong>
+                <span className="text-[10px] text-[#2B1609]/65">{result.overallScore}% · {result.healthIndex.grade}</span>
+              </div>
+              <div className="rounded-xl border border-[#D4AF37]/30 bg-[#FAF4E8] p-3">
+                <span className="block text-[9px] font-bold uppercase tracking-wide text-[#765A35]">APH citations</span>
+                <strong className="mt-1 block font-cinzel text-sm text-[#4A1504]">{result.layer4.citations.length} flagged</strong>
+                <span className="text-[10px] text-[#2B1609]/65">Review cited clauses and source material</span>
+              </div>
+              <div className="rounded-xl border border-[#D4AF37]/30 bg-[#FAF4E8] p-3">
+                <span className="block text-[9px] font-bold uppercase tracking-wide text-[#765A35]">Forensics signal</span>
+                <strong className={`mt-1 block font-cinzel text-sm ${needsForensicReview ? 'text-red-800' : 'text-emerald-800'}`}>{result.layer2.tamperingVerdict.replace('_', ' ')}</strong>
+                <span className="text-[10px] text-[#2B1609]/65">ELA anomaly score {result.layer2.elaAnomalyScore}/100</span>
+              </div>
+              <div className="rounded-xl border border-[#D4AF37]/30 bg-[#FAF4E8] p-3">
+                <span className="block text-[9px] font-bold uppercase tracking-wide text-[#765A35]">Follow-up actions</span>
+                <strong className="mt-1 block font-cinzel text-sm text-[#4A1504]">{decisionBriefActions.length}</strong>
+                <span className="text-[10px] text-[#2B1609]/65">Evidence checks to resolve or document</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-[#D4AF37]/40 bg-white/70 p-5 shadow-sm">
+            <div className="flex flex-wrap items-end justify-between gap-2 border-b border-[#D4AF37]/25 pb-3">
+              <div>
+                <h4 className="font-cinzel text-sm font-bold text-[#4A1504]">Evidence summary by review layer</h4>
+                <p className="mt-1 text-[10px] text-[#2B1609]/65">Select a layer tab above to inspect the underlying details.</p>
+              </div>
+              <span className="text-[9px] font-mono text-[#765A35]">{result.pageCount} pages · {result.layer1.tokensCount} extracted items</span>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <article className="rounded-xl border border-[#D4AF37]/25 bg-[#FAF4E8] p-3">
+                <h5 className="text-[10px] font-bold uppercase tracking-wide text-[#4A1504]">Document extraction</h5>
+                <p className="mt-1 text-xs font-semibold text-[#2B1609]">{result.layer1.payload.institutionName}</p>
+                <p className="mt-1 text-[10px] leading-relaxed text-[#2B1609]/70">{result.layer1.payload.programme} · {result.layer1.payload.landAreaAcres} acres · {result.layer1.payload.builtUpAreaSqm.toLocaleString()} m² built-up · survey {result.layer1.payload.surveyNumber}</p>
+              </article>
+              <article className="rounded-xl border border-[#D4AF37]/25 bg-[#FAF4E8] p-3">
+                <h5 className="text-[10px] font-bold uppercase tracking-wide text-[#4A1504]">Visual forensics</h5>
+                <p className="mt-1 text-xs font-semibold text-[#2B1609]">{result.layer2.tamperingVerdict.replace('_', ' ')} · ELA {result.layer2.elaAnomalyScore}/100</p>
+                <p className="mt-1 text-[10px] leading-relaxed text-[#2B1609]/70">Sharpness variance {result.layer2.laplacianBlurScore} · {result.layer2.patches.length} marked region(s). Signals need source-page review.</p>
+              </article>
+              <article className="rounded-xl border border-[#D4AF37]/25 bg-[#FAF4E8] p-3">
+                <h5 className="text-[10px] font-bold uppercase tracking-wide text-[#4A1504]">Issuer &amp; signature evidence</h5>
+                <p className="mt-1 text-xs font-semibold text-[#2B1609]">Registry {result.layer3.digiLockerMatch ? 'match reported' : 'not matched'} · PKI {result.layer3.pkiValid ? 'valid reported' : 'not verified'}</p>
+                <p className="mt-1 text-[10px] leading-relaxed text-[#2B1609]/70">Post-signing change: {result.layer3.postSigningBytesAltered ? 'reported' : 'not reported'} · QR payload: {result.layer3.qrPayloadValid ? 'valid reported' : 'not verified'}.</p>
+              </article>
+              <article className="rounded-xl border border-[#D4AF37]/25 bg-[#FAF4E8] p-3">
+                <h5 className="text-[10px] font-bold uppercase tracking-wide text-[#4A1504]">APH rule review</h5>
+                <p className="mt-1 text-xs font-semibold text-[#2B1609]">{result.layer4.compliancePercent}% rule score · {result.layer4.citations.length} citation(s)</p>
+                <p className="mt-1 text-[10px] leading-relaxed text-[#2B1609]/70">The official should confirm each cited clause, threshold, and interpretation against the current authoritative APH and applicable AICTE Act material.</p>
+              </article>
+              <article className="rounded-xl border border-[#D4AF37]/25 bg-[#FAF4E8] p-3">
+                <h5 className="text-[10px] font-bold uppercase tracking-wide text-[#4A1504]">Infrastructure evidence</h5>
+                <p className="mt-1 text-xs font-semibold text-[#2B1609]">{result.layer5.yoloDetections.length} facility detection(s) · CAD area {result.layer5.cadTotalAreaSqm > 0 ? `${result.layer5.cadTotalAreaSqm.toLocaleString()} m²` : 'not assessed'}</p>
+                <p className="mt-1 text-[10px] leading-relaxed text-[#2B1609]/70">Location {result.layer5.geofenceValid ? 'within reported tolerance' : 'not verified'} · fire-egress value {result.layer5.nearestFireExitM > 0 ? `${result.layer5.nearestFireExitM} m` : 'not assessed'}.</p>
+              </article>
+              <article className="rounded-xl border border-[#D4AF37]/25 bg-[#FAF4E8] p-3">
+                <h5 className="text-[10px] font-bold uppercase tracking-wide text-[#4A1504]">Audit trail</h5>
+                <p className="mt-1 text-xs font-semibold text-[#2B1609]">{result.layer6.blocks.length} recorded block(s)</p>
+                <p className="mt-1 break-all font-mono text-[9px] leading-relaxed text-[#2B1609]/70">{result.layer6.merkleRoot || 'No Merkle root supplied'}</p>
+              </article>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-[#D4AF37]/40 bg-white/75 p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-[#D4AF37]/25 pb-3">
+              <div>
+                <h4 className="font-cinzel text-sm font-bold text-[#4A1504]">Recommended official follow-up</h4>
+                <p className="mt-1 text-[10px] text-[#2B1609]/65">Resolve, request, or document these items before recording a formal outcome.</p>
+              </div>
+              <span className="rounded-full border border-[#D4AF37]/40 bg-[#FAF4E8] px-2.5 py-1 text-[9px] font-bold text-[#765A35]">{decisionBriefActions.length} items</span>
+            </div>
+            {decisionBriefActions.length > 0 ? (
+              <ol className="mt-3 space-y-2">
+                {decisionBriefActions.map((item, index) => (
+                  <li key={item.id} className="flex gap-3 rounded-xl border border-[#D4AF37]/25 bg-[#FAF4E8] p-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#4A1504] text-[10px] font-bold text-[#F5E6C8]">{index + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-bold text-[#4A1504]">{item.source}</span>
+                        <span className={`rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${item.priority === 'High' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-900'}`}>{item.priority} priority</span>
+                      </div>
+                      <p className="mt-1 text-[11px] leading-relaxed text-[#2B1609]/80">{item.action}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs leading-relaxed text-emerald-900">No follow-up flags were produced by the available checks. The reviewer should still verify the source documents and record any checks that could not be performed.</p>
+            )}
+            {result.healthIndex.recommendations.length > 0 && (
+              <div className="mt-4 rounded-xl border border-[#D4AF37]/30 bg-[#F5E6C8]/55 p-3">
+                <h5 className="text-[10px] font-bold uppercase tracking-wide text-[#4A1504]">System-generated suggestions · validate against evidence</h5>
+                <ul className="mt-2 space-y-1 text-[10px] leading-relaxed text-[#2B1609]/75">
+                  {result.healthIndex.recommendations.map((recommendation, index) => <li key={index} className="flex gap-2"><span className="text-[#9A7429]">•</span><span>{recommendation}</span></li>)}
+                </ul>
+              </div>
+            )}
+          </section>
+
+          <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[10px] leading-relaxed text-slate-700">
+            Decision boundary: this brief consolidates system output for human scrutiny. It is not a statutory verdict, an issuer confirmation, or a substitute for the current official rules and supporting evidence.
+          </p>
+        </div>
+      )}
+
       {/* Tab Content: Layer 2 ELA Forensics */}
       {activeTab === 'layer2' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 space-y-3">
-            <div className="p-4 rounded-2xl bg-white/70 border border-[#D4AF37]/40 shadow-sm space-y-2">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
+          <div className="lg:col-span-8">
+            <div className="rounded-2xl bg-white/70 p-4 shadow-sm border border-[#D4AF37]/40">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-cinzel font-bold text-sm text-[#4A1504]">
-                  Interactive Error Level Analysis (ELA) Split-Slider
+                  ELA document comparison
                 </span>
-                <span className="font-mono text-[#2B1609]/70 text-[11px]">
-                  Drag slider across canvas to reveal compression residuals
+                <span className="font-mono text-[#2B1609]/70 text-[10px]">
+                  Drag to compare source and signal
                 </span>
               </div>
+              <p className="mb-2 text-[10px] leading-snug text-[#2B1609]/70">
+                ELA anomaly score: <strong>{result.layer2.elaAnomalyScore}/100</strong>. Higher scores mean stronger compression differences to review; this score is not a probability or proof of alteration.
+              </p>
 
-              <div className="relative w-full aspect-[1/1.25] rounded-xl overflow-hidden border-2 border-[#4A1504]/30 select-none bg-[#FAF4E8]">
+              <div className="relative h-[300px] w-full overflow-hidden rounded-xl border-2 border-[#4A1504]/30 select-none bg-[#FAF4E8] sm:h-[340px]">
                 {/* Original Page Layer */}
-                <div className="absolute inset-0 p-6 flex flex-col justify-between text-[#2B1609] font-serif">
-                  <div className="text-center border-b border-[#2B1609]/20 pb-3">
-                    <div className="text-[10px] uppercase font-bold tracking-widest text-[#4A1504]">
+                <div className="absolute inset-0 flex flex-col justify-between p-4 font-serif text-[#2B1609] sm:p-5">
+                  <div className="border-b border-[#2B1609]/20 pb-2 text-center">
+                    <div className="text-[9px] uppercase font-bold tracking-widest text-[#4A1504]">
                       DOCUMENT SURFACE SCAN • {result.fileName}
                     </div>
                   </div>
-                  <div className="space-y-4 my-auto text-xs">
-                    <div className="p-3 bg-white/80 rounded border border-[#D4AF37]/40">
+                  <div className="my-auto space-y-3 text-xs">
+                    <div className="rounded border border-[#D4AF37]/40 bg-white/80 p-3">
                       <span className="text-[10px] text-[#2B1609]/60 block">SCHEDULE OF PROPERTY</span>
                       <p className="font-bold text-sm text-[#4A1504] mt-1">
                         Total Stated Demarcation: {result.layer1.payload.landAreaAcres} ACRES
                       </p>
                     </div>
-                    <div className="p-3 bg-white/80 rounded border border-[#D4AF37]/40">
+                    <div className="rounded border border-[#D4AF37]/40 bg-white/80 p-3">
                       <span className="text-[10px] text-[#2B1609]/60 block">SURVEY NUMBER</span>
                       <p className="font-semibold text-xs mt-0.5">{result.layer1.payload.surveyNumber}</p>
                     </div>
@@ -387,23 +583,23 @@ export const DocumentFindingsView: React.FC<Props> = ({
                 {/* ELA Heatmap Layer */}
                 <div
                   style={{ clipPath: `inset(0 0 0 ${elaSliderPos}%)` }}
-                  className="absolute inset-0 bg-[#0F0804] text-white p-6 flex flex-col justify-between font-mono"
+                  className="absolute inset-0 flex flex-col justify-between bg-[#0F0804] p-4 font-mono text-white sm:p-5"
                 >
-                  <div className="text-center border-b border-red-500/30 pb-3 text-[10px] text-red-400 font-bold uppercase tracking-widest">
+                  <div className="border-b border-red-500/30 pb-2 text-center text-[9px] font-bold uppercase tracking-widest text-red-400">
                     [ELA RESIDUAL INTENSITY MATRIX]
                   </div>
 
-                  <div className="space-y-4 my-auto text-xs">
+                  <div className="my-auto space-y-3 text-xs">
                     {result.layer2.tamperingVerdict !== 'CLEAN' ? (
                       <div className="p-3 bg-red-950/80 rounded border-2 border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.6)] animate-pulse">
                         <span className="text-[9px] text-red-400 uppercase font-bold block">
                           ⚠ HIGH RESIDUAL ENTROPY CLUSTER DETECTED
                         </span>
-                        <p className="font-bold text-sm text-red-300 mt-1">
+                        <p className="mt-1 text-xs font-bold text-red-300">
                           Acreage Insertion: {result.layer1.payload.landAreaAcres} ACRES [Anomaly: {result.layer2.elaAnomalyScore}/100]
                         </p>
-                        <span className="text-[9px] text-amber-300 font-mono block mt-1">
-                          Altered text insertion detected via JPEG compression difference.
+                        <span className="mt-1 block text-[9px] font-mono text-amber-300">
+                          Uneven JPEG recompression can make edited regions stand out; this is a review signal, not proof of tampering.
                         </span>
                       </div>
                     ) : (
@@ -411,15 +607,15 @@ export const DocumentFindingsView: React.FC<Props> = ({
                         <span className="text-[9px] uppercase font-bold block text-emerald-400">
                           ✓ UNIFORM LOW-ENTROPY SENSOR BASELINE
                         </span>
-                        <p className="font-bold text-sm mt-1">
+                        <p className="mt-1 text-xs font-bold">
                           Original Native Scan [Residual Energy: {result.layer2.elaAnomalyScore}/100]
                         </p>
                       </div>
                     )}
                   </div>
 
-                  <div className="text-right text-[10px] text-gray-400 border-t border-red-500/30 pt-3">
-                    Status: {result.layer2.tamperingVerdict}
+                  <div className="border-t border-red-500/30 pt-2 text-right text-[9px] text-gray-400">
+                    Status: {result.layer2.tamperingVerdict} · ELA anomaly score: {result.layer2.elaAnomalyScore}/100
                   </div>
                 </div>
 
@@ -445,12 +641,18 @@ export const DocumentFindingsView: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="lg:col-span-4 space-y-4">
-            <div className="p-4 rounded-2xl bg-white/70 border border-[#D4AF37]/40 shadow-xs space-y-3">
-              <h4 className="font-cinzel font-bold text-xs uppercase tracking-wider text-[#4A1504]">
-                OpenCV Laplacian Blur Gauge
-              </h4>
-              <div className="p-3 bg-[#FAF4E8] rounded-xl text-center space-y-1">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-4 lg:grid-cols-1">
+            <div className="rounded-2xl bg-white/70 p-4 shadow-sm border border-[#D4AF37]/40">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="font-cinzel font-bold text-xs uppercase tracking-wider text-[#4A1504]">
+                  Sharpness (Laplacian variance)
+                </h4>
+                <span className="text-[10px] font-mono text-[#2B1609]/60">score</span>
+              </div>
+              <p className="mt-1 text-[10px] leading-snug text-[#2B1609]/70">
+                Measures fine image detail; lower values can indicate blur or smoothing. It is not a physical unit and varies with image size and content.
+              </p>
+              <div className="mt-2 rounded-xl bg-[#FAF4E8] p-3 text-center space-y-1">
                 <div className="font-mono text-xl font-bold text-[#4A1504]">
                   {result.layer2.laplacianBlurScore}
                 </div>
@@ -464,19 +666,33 @@ export const DocumentFindingsView: React.FC<Props> = ({
                   {result.layer2.artificialFlatteningDetected ? 'Synthetic Smoothing Detected' : 'Natural Sensor Sharpness'}
                 </span>
               </div>
+              <p className={`mt-2 text-[10px] font-semibold ${result.layer2.artificialFlatteningDetected ? 'text-red-800' : 'text-emerald-800'}`}>
+                {result.layer2.artificialFlatteningDetected
+                  ? 'This low score is flagged for review: some areas may have been blurred or flattened.'
+                  : 'No unusual loss of fine detail was flagged by this check.'}
+              </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-white/70 border border-[#D4AF37]/40 shadow-xs space-y-2 text-xs">
-              <h4 className="font-cinzel font-bold text-xs uppercase tracking-wider text-[#4A1504]">
-                Perceptual Hash (pHash) Match
-              </h4>
+            <div className="rounded-2xl bg-white/70 p-4 shadow-sm border border-[#D4AF37]/40 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="font-cinzel font-bold text-xs uppercase tracking-wider text-[#4A1504]">Template similarity (pHash)</h4>
+                <span className="text-[10px] font-mono text-[#2B1609]/60">%</span>
+              </div>
+              <p className="mt-1 text-[10px] leading-snug text-[#2B1609]/70">
+                Compares the page’s overall visual pattern with a reference template. Lower similarity means the layouts differ; it does not by itself identify an error.
+              </p>
               <div className="flex justify-between font-mono">
-                <span>Template Match:</span>
+                <span>Visual similarity</span>
                 <span className="font-bold text-[#4A1504]">{result.layer2.pHashMatchPercent}%</span>
               </div>
               <div className="p-2 bg-[#FAF4E8] rounded border border-[#D4AF37]/30 font-mono text-[10px] break-all">
                 Hash: {result.layer2.pHashSignature}
               </div>
+              <p className="mt-1 text-[10px] text-[#2B1609]/70">
+                {result.layer2.pHashMatchPercent < 90
+                  ? 'Review the page layout and source: the match is below the 90% review guide.'
+                  : 'The visual pattern is close to the reference template.'}
+              </p>
             </div>
           </div>
         </div>

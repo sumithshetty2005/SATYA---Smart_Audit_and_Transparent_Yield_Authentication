@@ -262,7 +262,7 @@ class ComplianceAuditResponse(BaseModel):
         description="LLM provider utilized: 'groq', 'gemini', or 'rule_based_fallback'",
     )
     model_used: str = Field(
-        default="llama-3.1-8b-instant",
+        default="gpt-oss-120b",
         description="Specific model identifier utilized for evaluation and synthesis",
     )
     execution_time_seconds: float = Field(

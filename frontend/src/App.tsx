@@ -6,6 +6,7 @@ import { DocumentFindingsView, type ScrutinyResult } from './components/Document
 import { OfficialInspectionReportModal } from './components/OfficialInspectionReportModal';
 import { SpecificationsModal } from './components/SpecificationsModal';
 import { Footer } from './components/Footer';
+import { AuditSignalAnimation } from './components/AuditSignalAnimation';
 import {
   UploadCloud,
   FileCheck2,
@@ -444,8 +445,8 @@ export function App() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
           <a href="/" className="flex items-center gap-3.5 group shrink-0">
-            <div className="satya-mark w-12 h-12 rounded-2xl bg-[#4A1504] border border-[#D4AF37] shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:rotate-[-6deg] group-hover:scale-105 shrink-0">
-              <ShieldCheck className="w-7 h-7 text-[#D4AF37]" />
+            <div className="satya-mark w-12 h-12 rounded-2xl bg-[#4A1504] border border-[#D4AF37] shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:rotate-[-6deg] group-hover:scale-105 shrink-0 overflow-hidden">
+              <img src="/assets/satya-favicon.svg" alt="" aria-hidden="true" className="h-full w-full object-cover" />
             </div>
             <div className="flex flex-col">
               <span className="font-cinzel text-lg sm:text-xl font-extrabold tracking-tight text-[#4A1504]">SATYA</span>
@@ -565,6 +566,10 @@ export function App() {
             ))}
           </div>
         </section>
+
+        <div className="pb-2">
+          <AuditSignalAnimation />
+        </div>
         </>}
 
         {currentPage === 'audit' && <>
@@ -741,7 +746,7 @@ export function App() {
         </section>}
         {currentPage === 'faq' && <section className="space-y-6 py-2">
           <div><p className="text-[10px] font-bold tracking-[0.24em] uppercase text-[#A27724]">Frequently asked questions</p><h1 className="font-cinzel text-3xl md:text-4xl font-bold text-[#4A1504] mt-1">Understanding SATYA and its review workflow</h1><p className="mt-3 max-w-3xl text-sm leading-relaxed text-[#2B1609]/70">Answers about supported documents, evidence signals, reviewer responsibilities, and the current integration boundaries.</p></div>
-          <div className="grid md:grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3">
             {[
               ['What is SATYA?', 'SATYA stands for Smart Audit and Transparent Yield Authentication. It is designed to organize review of technical education filings and present related evidence signals together.'],
               ['Who is SATYA for?', 'The workflow is intended to support institutional filing review by authorized compliance teams and human reviewers.'],

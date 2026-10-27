@@ -1,6 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="16" fill="#4A1504"/>
-  <rect x="2" y="2" width="60" height="60" rx="15" fill="none" stroke="#D4AF37" stroke-width="2"/>
-  <path d="M32 11 47 17v12c0 10.3-6.4 18-15 23-8.6-5-15-12.7-15-23V17l15-6Z" fill="none" stroke="#E3BB43" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.8"/>
-  <path d="m25.5 31.5 4.6 4.6 9-10" fill="none" stroke="#E3BB43" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.8"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">SATYA audit emblem</title>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#351508" stroke="#D4AF37" stroke-width="2"/>
+  <rect x="7" y="7" width="50" height="50" rx="11" fill="#FAF4E8"/>
+  <path d="M32 13 45 18v11c0 9-5.2 15.4-13 20-7.8-4.6-13-11-13-20V18l13-5Z" fill="#4A1504" stroke="#C59B27" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M25 29h14M25 34h9" fill="none" stroke="#F5E6C8" stroke-width="2" stroke-linecap="round"/>
+  <path d="m29 39 2.5 2.5L37 36" fill="none" stroke="#E3BB43" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="32" cy="9" r="1.4" fill="#D4AF37"/>
+  <circle cx="32" cy="55" r="1.4" fill="#D4AF37"/>
 </svg>

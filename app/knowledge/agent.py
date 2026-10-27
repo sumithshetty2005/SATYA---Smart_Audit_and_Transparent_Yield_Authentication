@@ -6,7 +6,7 @@ Orchestrates a 3-agent compliance workflow using LangGraph:
 3. Audit Synthesizer Agent: Generates structured compliance reports citing exact APH sections and clauses.
 
 Dual LLM Configuration:
-- Primary LLM: Llama 3.1 8B Instruct via Groq (langchain-groq)
+- Primary LLM: gpt-oss-120b via Groq (langchain-groq)
 - Automatic Fallback: Google Gemini API (langchain-google-genai)
 - Deterministic Evaluation Fallback: For offline/unconfigured environments.
 """
@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 # Dual LLM Provider Manager (Groq Primary with Google Gemini Fallback)
 # ---------------------------------------------------------------------------
 class DualLLMManager:
-    """Manages primary Groq Llama 3.1 8B and automatic Google Gemini API fallback with key rotation."""
+    """Manages primary Groq gpt-oss-120b and automatic Google Gemini API fallback with key rotation."""
 
     def __init__(self) -> None:
         self.groq_api_keys = GROQ_API_KEYS
@@ -70,7 +70,7 @@ class DualLLMManager:
             HumanMessage(content=user_prompt),
         ]
 
-        # 1. Primary: Groq Llama 3.1 8B (with key failover)
+        # 1. Primary: Groq gpt-oss-120b (with key failover)
         for idx, g_key in enumerate(self.groq_api_keys):
             try:
                 from langchain_groq import ChatGroq
@@ -881,7 +881,7 @@ def execute_compliance_audit(request: ComplianceAuditRequest) -> ComplianceAudit
         "compliance_score": 0.0,
         "summary": "",
         "llm_provider": "groq",
-        "model_used": "llama-3.1-8b-instant",
+        "model_used": GROQ_MODEL,
         "start_time": t0,
     }
 

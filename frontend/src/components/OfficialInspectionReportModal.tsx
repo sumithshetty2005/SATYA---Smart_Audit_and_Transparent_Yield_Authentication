@@ -1,15 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Printer, ShieldCheck, AlertTriangle, QrCode, FileText, CheckCircle2 } from 'lucide-react';
+import { X, Printer, ShieldCheck, AlertTriangle, FileText, CheckCircle2, Download, Copy, ExternalLink, Eye, Network } from 'lucide-react';
 import type { ScrutinyResult } from './DocumentFindingsView';
-import type { InstitutionProfile, OfficerRole } from '../types/compliance';
+import type { InstitutionProfile } from '../types/compliance';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   result?: ScrutinyResult;
   institution?: InstitutionProfile;
-  officerRole?: OfficerRole;
 }
 
 export const OfficialInspectionReportModal: React.FC<Props> = ({
@@ -17,26 +16,32 @@ export const OfficialInspectionReportModal: React.FC<Props> = ({
   onClose,
   result,
   institution,
-  officerRole = 'SENIOR_SCRUTINY_OFFICER',
 }) => {
+  const [activeInspector, setActiveInspector] = useState<'layer2' | 'layer4' | null>(null);
+  const [digestCopied, setDigestCopied] = useState(false);
+  const [elaReveal, setElaReveal] = useState(50);
   if (!isOpen) return null;
 
   const handlePrint = () => {
     window.print();
   };
 
-  const roleLabels: Record<OfficerRole, string> = {
-    SENIOR_SCRUTINY_OFFICER: 'Senior Scrutiny Officer (Technical Inspection Division)',
-    REGIONAL_OFFICER: 'Regional Officer & Director (Regional Technical Office)',
-    CHAIRMAN_AICTE: 'Member Secretary & Chairman (Executive Committee AICTE)',
+  const handleCopyDigest = async () => {
+    if (!merkleRoot) return;
+    try {
+      await navigator.clipboard.writeText(merkleRoot);
+      setDigestCopied(true);
+      window.setTimeout(() => setDigestCopied(false), 1800);
+    } catch {
+      setDigestCopied(false);
+    }
   };
 
   const docName = result?.fileName || institution?.name || 'Institutional Scrutiny Filing';
-  const docId = institution?.id || `AICTE-APH-${Math.abs(docName.split('').reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0))}`;
-  const verdict = result?.verdict || institution?.verdict || 'PASSED';
-  const score = result?.overallScore ?? institution?.overallScore ?? 88;
+  const verdict = result?.verdict || institution?.verdict;
+  const score = result?.overallScore ?? institution?.overallScore;
   const citations = result?.layer4.citations || institution?.layer4.citations || [];
-  const merkleRoot = result?.layer6.merkleRoot || institution?.layer6.merkleRoot || '0x8f4d92a10cbe77192837491029384719283749102938471928374910293847a1';
+  const merkleRoot = result?.layer6.merkleRoot || institution?.layer6.merkleRoot || '';
 
   return (
     <AnimatePresence>
@@ -48,18 +53,33 @@ export const OfficialInspectionReportModal: React.FC<Props> = ({
           className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto bg-[#FAF4E8] text-[#2B1609] rounded-2xl shadow-2xl border-2 border-[#D4AF37]/50 p-6 md:p-10 font-sans-modern print:max-h-none print:shadow-none print:border-none print:rounded-none"
         >
           {/* Top Bar - No-print Controls */}
-          <div className="flex items-center justify-between pb-6 border-b border-[#D4AF37]/30 print:hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-[#D4AF37]/30 print:hidden">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#4A1504]">
               <FileText className="w-4 h-4 text-[#D4AF37]" />
-              <span>Official AICTE Regulatory Scrutiny Dossier • Form APH-SCR-2025</span>
+              <span>SATYA · Scrutiny review summary</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handlePrint}
-                className="flex items-center gap-2 px-4 py-2 bg-[#4A1504] text-[#F5E6C8] hover:bg-[#2B1609] rounded-lg text-xs font-medium tracking-wide shadow-md transition-all duration-200 cursor-pointer"
+                className="flex items-center gap-2 rounded-lg border border-[#D4AF37]/50 bg-white/70 px-3 py-2 text-[11px] font-semibold text-[#4A1504] shadow-sm transition-colors hover:bg-[#F5E6C8]"
+                title="Use your browser print dialog to save a PDF. This report is not digitally signed."
+              >
+                <Download className="h-3.5 w-3.5" /> Save PDF
+              </button>
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 rounded-lg bg-[#4A1504] px-3 py-2 text-[11px] font-semibold text-[#F5E6C8] shadow-md transition-colors hover:bg-[#2B1609]"
               >
                 <Printer className="w-3.5 h-3.5" />
-                Print / Save PDF
+                Print report
+              </button>
+              <button
+                onClick={handleCopyDigest}
+                disabled={!merkleRoot}
+                className="flex items-center gap-2 rounded-lg border border-[#D4AF37]/50 bg-white/70 px-3 py-2 text-[11px] font-semibold text-[#4A1504] transition-colors hover:bg-[#F5E6C8] disabled:cursor-not-allowed disabled:opacity-50"
+                title={merkleRoot ? 'Copy the displayed Merkle root digest' : 'No audit digest is available for this review'}
+              >
+                <Copy className="h-3.5 w-3.5" /> {digestCopied ? 'Copied' : 'Copy audit digest'}
               </button>
               <button
                 onClick={onClose}
@@ -71,71 +91,71 @@ export const OfficialInspectionReportModal: React.FC<Props> = ({
           </div>
 
           {/* Official Document Body */}
-          <div className="pt-6 relative">
+          <div className="relative isolate pt-6">
             {/* Watermark Mandala in Background */}
             <div
-              className="absolute inset-0 pointer-events-none opacity-5 bg-center bg-no-repeat bg-contain"
+              className="absolute inset-0 z-0 pointer-events-none opacity-[0.035] bg-center bg-no-repeat bg-contain"
               style={{ backgroundImage: `url('/assets/mandala.png')` }}
             />
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center overflow-hidden print:opacity-[0.05]">
+              <span className="-rotate-[28deg] whitespace-nowrap border-y-4 border-[#4A1504] px-8 py-3 text-center font-cinzel text-3xl font-bold tracking-[0.16em] text-[#4A1504] opacity-50 sm:text-5xl">
+                SATYA · REVIEW COPY · NOT AN OFFICIAL AICTE ORDER
+              </span>
+            </div>
 
             {/* Document Header */}
-            <div className="text-center pb-6 border-b-2 border-[#4A1504]/20 relative z-10">
+            <div className="relative z-10 border-b-2 border-[#4A1504]/20 pb-6 text-center">
               <div className="flex justify-center items-center gap-4 mb-3">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-[#D4AF37] bg-[#4A1504] shadow-md" aria-label="SATYA logo">
                   <ShieldCheck className="h-9 w-9 text-[#D4AF37]" strokeWidth={1.8} />
                 </div>
               </div>
-              <h1 className="font-vedic text-xl md:text-2xl font-bold tracking-wide text-[#4A1504]">
-                अखिल भारतीय तकनीकी शिक्षा परिषद
+              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#9A7429]">Smart Audit and Transparent Yield Authentication</p>
+              <h1 className="mt-1 font-cinzel text-xl font-bold tracking-wide text-[#4A1504] md:text-2xl">
+                SATYA Document Review Summary
               </h1>
-              <h2 className="font-cinzel text-lg md:text-xl font-semibold tracking-wider text-[#2B1609]">
-                ALL INDIA COUNCIL FOR TECHNICAL EDUCATION
-              </h2>
-              <p className="text-xs text-[#2B1609]/75 font-serif mt-1">
-                (A Statutory Body of the Government of India, Ministry of Education)
+              <p className="mt-1 font-serif text-xs text-[#2B1609]/75">
+                Evidence and rule-review aid for technical education filings · {new Date('2026-10-27T00:00:00+05:30').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
               </p>
-              <p className="text-xs text-[#2B1609]/60 font-mono mt-0.5">
-                Nelson Mandela Marg, Vasant Kunj, New Delhi - 110070 | www.aicte-india.org
-              </p>
-              <div className="mt-3 inline-block px-4 py-1 border border-[#D4AF37] bg-[#D4AF37]/15 rounded-full text-xs font-cinzel font-bold text-[#4A1504]">
-                OFFICIAL SCRUTINY VERIFICATION & COMPLIANCE ORDER • AY 2025–2026
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#D4AF37] bg-[#D4AF37]/15 px-4 py-1 text-xs font-cinzel font-bold text-[#4A1504]">
+                REVIEW FINDINGS · NOT A COUNCIL DECISION
               </div>
-            </div>
-
-            {/* Vedic Shloka Ribbon */}
-            <div className="my-4 py-2 px-4 bg-[#F5E6C8]/80 border-l-4 border-[#D4AF37] rounded-r text-center font-serif text-xs italic text-[#4A1504]/90">
-              "दीर्घस्याक्ष्णया रज्जुः पार्श्वमानी तिर्यङ्ग्मानी च यत्पृथग्भूते कुरुतस्तदुभयं करोति ॥" — बौधायन शुल्बसूत्र
-              <span className="block text-[10px] text-[#2B1609]/60 not-italic mt-0.5">
-                (Rigorous Geometric Truth & Architectural Exactitude Foundation of AICTE APH Standards)
-              </span>
             </div>
 
             {/* Metadata Table */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-5 p-4 bg-[#F5E6C8]/50 rounded-xl border border-[#D4AF37]/40 text-xs">
+            <div className="relative z-10 my-5 grid grid-cols-2 gap-3 rounded-xl border border-[#D4AF37]/40 bg-[#F5E6C8]/75 p-4 text-xs md:grid-cols-3">
               <div>
-                <span className="block text-[#4A1504] font-semibold text-[10px] uppercase">Permanent Dossier Ref</span>
-                <span className="font-mono font-bold text-[#2B1609]">{docId}</span>
+                <span className="block text-[#4A1504] font-semibold text-[10px] uppercase">Sample file reference</span>
+                <span className="font-mono font-bold text-[#2B1609]">F.No. AICTE/AB/NRO/2026/SCR-88492</span>
               </div>
               <div>
-                <span className="block text-[#4A1504] font-semibold text-[10px] uppercase">Application Document</span>
-                <span className="font-mono font-bold text-[#2B1609] truncate block max-w-[150px]">{docName}</span>
+                <span className="block text-[#4A1504] font-semibold text-[10px] uppercase">Institution</span>
+                <span className="font-semibold text-[#2B1609]">Vidyapeeth Institute of Technology &amp; Management</span>
               </div>
               <div>
-                <span className="block text-[#4A1504] font-semibold text-[10px] uppercase">Council Scrutiny Region</span>
-                <span className="font-semibold text-[#2B1609]">{institution?.region || 'Central Scrutiny Cell'}</span>
+                <span className="block text-[#4A1504] font-semibold text-[10px] uppercase">Sample application ID</span>
+                <span className="font-mono font-bold text-[#2B1609]">1-4390291048</span>
               </div>
               <div>
-                <span className="block text-[#4A1504] font-semibold text-[10px] uppercase">Regulatory Edition</span>
-                <span className="font-semibold text-[#2B1609]">AICTE APH 2024–2027 v4.2</span>
+                <span className="block text-[#4A1504] font-semibold text-[10px] uppercase">Uploaded document</span>
+                <span className="block max-w-[240px] truncate font-mono font-bold text-[#2B1609]" title={docName}>{docName}</span>
+              </div>
+              <div>
+                <span className="block text-[#4A1504] font-semibold text-[10px] uppercase">Review date</span>
+                <span className="font-semibold text-[#2B1609]">27 Oct 2026</span>
+              </div>
+              <div>
+                <span className="block text-[#4A1504] font-semibold text-[10px] uppercase">Rule source</span>
+                <span className="font-semibold text-[#2B1609]">APH 2024–2027 + referenced AICTE Act provisions</span>
               </div>
             </div>
 
             {/* Scrutiny Findings Table */}
-            <div className="space-y-4 text-xs text-[#2B1609]">
-              <div className="overflow-hidden rounded-xl border border-[#D4AF37]/40 bg-white/70">
+            <div className="relative z-10 space-y-4 text-xs text-[#2B1609]">
+              <div className="overflow-hidden rounded-xl border border-[#D4AF37]/40 bg-white/85">
                 <div className="bg-[#4A1504] text-[#F5E6C8] px-4 py-2 font-cinzel font-semibold text-xs tracking-wider flex justify-between items-center">
-                  <span>Multi-Layer Statutory Scrutiny Evaluation Summary</span>
-                  <span>Score: {score}/100</span>
+                  <span>Multi-Layer Review Summary · select Layer 2 or 4 for details</span>
+                  <span>Score: {score == null ? 'Not assessed' : `${score}/100`}</span>
                 </div>
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
@@ -151,18 +171,14 @@ export const OfficialInspectionReportModal: React.FC<Props> = ({
                       <td className="p-2.5 font-medium">Layer 1: Document Extraction</td>
                       <td className="p-2.5">LayoutLMv3 OCR & Bounding Boxes</td>
                       <td className="p-2.5">Complete Form Ingestion</td>
-                      <td className="p-2.5 text-right font-bold text-emerald-700">Validated</td>
+                      <td className="p-2.5 text-right font-bold text-emerald-700">{result ? 'Extracted' : 'Not assessed'}</td>
                     </tr>
-                    <tr>
-                      <td className="p-2.5 font-medium">Layer 2: Visual Forensics</td>
+                    <tr onClick={() => setActiveInspector(activeInspector === 'layer2' ? null : 'layer2')} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveInspector(activeInspector === 'layer2' ? null : 'layer2'); } }} tabIndex={0} role="button" aria-label="Open visual forensics inspector" className="cursor-pointer transition-colors hover:bg-[#F5E6C8]/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#9A7429]">
+                      <td className="p-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5 text-[#9A7429]" />Layer 2: Visual Forensics</span></td>
                       <td className="p-2.5">Error Level Analysis (ELA)</td>
-                      <td className="p-2.5">Clean Baseline (&lt;15 Score)</td>
+                      <td className="p-2.5">Relative compression-residual score (/100)</td>
                       <td className="p-2.5 text-right font-bold">
-                        {verdict === 'PASSED' ? (
-                          <span className="text-emerald-700">PASSED</span>
-                        ) : (
-                          <span className="text-red-700">FORGERY FLAGGED</span>
-                        )}
+                        {result?.layer2.tamperingVerdict === 'CLEAN' ? <span className="text-emerald-700">No anomaly flagged</span> : result?.layer2.tamperingVerdict ? <span className="text-red-700">Review signal</span> : <span className="text-slate-600">Not assessed</span>}
                       </td>
                     </tr>
                     <tr>
@@ -170,43 +186,77 @@ export const OfficialInspectionReportModal: React.FC<Props> = ({
                       <td className="p-2.5">DigiLocker & PKI DSC Certificate</td>
                       <td className="p-2.5">Authoritative Match & Valid DSC</td>
                       <td className="p-2.5 text-right font-bold">
-                        {verdict === 'PASSED' ? (
-                          <span className="text-emerald-700">AUTHENTICATED</span>
-                        ) : (
-                          <span className="text-red-700">DIGEST MISMATCH</span>
-                        )}
+                        {result?.layer3.pkiValid ? <span className="text-emerald-700">Signature valid</span> : result ? <span className="text-slate-600">Not verified</span> : <span className="text-slate-600">Unavailable</span>}
                       </td>
                     </tr>
-                    <tr>
-                      <td className="p-2.5 font-medium">Layer 4: GraphRAG Compliance</td>
-                      <td className="p-2.5">Neo4j Knowledge Graph Multi-Agent</td>
+                    <tr onClick={() => setActiveInspector(activeInspector === 'layer4' ? null : 'layer4')} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveInspector(activeInspector === 'layer4' ? null : 'layer4'); } }} tabIndex={0} role="button" aria-label="Open APH rule citations" className="cursor-pointer transition-colors hover:bg-[#F5E6C8]/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#9A7429]">
+                      <td className="p-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><Network className="h-3.5 w-3.5 text-[#9A7429]" />Layer 4: GraphRAG Compliance</span></td>
+                      <td className="p-2.5">APH rule and citation review</td>
                       <td className="p-2.5">APH 2024–27 Chapter II & IV</td>
                       <td className="p-2.5 text-right font-bold">
                         {citations.length > 0 ? (
                           <span className="text-red-700">DEFICIENT ({citations.length} Gaps)</span>
                         ) : (
-                          <span className="text-emerald-700">COMPLIANT</span>
+                          <span className="text-slate-600">{result ? 'No citations attached' : 'Not assessed'}</span>
                         )}
                       </td>
                     </tr>
                     <tr>
                       <td className="p-2.5 font-medium">Layer 5: Computer Vision</td>
-                      <td className="p-2.5">CAD Shapely + YOLOv11 Equipment</td>
+                      <td className="p-2.5">CAD geometry and facility evidence</td>
                       <td className="p-2.5">Circulation &gt;= 25%, Mandated Tools</td>
-                      <td className="p-2.5 text-right font-bold text-emerald-700">
-                        VERIFIED
+                      <td className="p-2.5 text-right font-bold text-slate-600">
+                        Review in workspace
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
+              {activeInspector && (
+                <section className="relative rounded-xl border border-[#D4AF37]/50 bg-[#F5E6C8]/90 p-4 shadow-inner" aria-live="polite">
+                  <button onClick={() => setActiveInspector(null)} className="absolute right-3 top-3 rounded p-1 text-[#4A1504]/70 hover:bg-white/70" aria-label="Close finding details"><X className="h-4 w-4" /></button>
+                  {activeInspector === 'layer2' ? (
+                    <>
+                      <h3 className="flex items-center gap-2 pr-8 font-cinzel text-sm font-bold text-[#4A1504]"><Eye className="h-4 w-4" />Visual forensics · ELA inspector</h3>
+                      <p className="mt-1 text-[11px] leading-relaxed text-[#2B1609]/75">Error Level Analysis highlights regions with different compression residuals. An anomaly is a review signal, not proof of editing.</p>
+                      <div className="relative mt-3 h-36 overflow-hidden rounded-lg border border-[#4A1504]/25 bg-[#FBF6EB] font-mono text-[9px] sm:h-40">
+                        <div className="absolute inset-0 flex flex-col justify-between p-3 text-[#4A1504]">
+                          <div className="border-b border-[#4A1504]/15 pb-2 text-center font-bold">EXTRACTED FIELDS · {docName}</div>
+                          <div className="rounded border border-[#D4AF37]/45 bg-white/75 p-2">Claimed land area: {result?.layer1.payload.landAreaAcres ?? 'Not extracted'} acres</div>
+                          <div className="border-t border-[#4A1504]/15 pt-2 text-right">Survey ref: {result?.layer1.payload.surveyNumber ?? 'Not extracted'}</div>
+                        </div>
+                        <div style={{ clipPath: `inset(0 0 0 ${elaReveal}%)` }} className="absolute inset-0 flex flex-col justify-between bg-[#160C09] p-3 text-amber-100">
+                          <div className="border-b border-red-400/30 pb-2 text-center font-bold text-red-200">ELA RESULT · SUMMARY VIEW</div>
+                          <div className="rounded border border-red-400/50 bg-red-950/50 p-2">Anomaly score: {result?.layer2.elaAnomalyScore ?? 'Not available'} / 100<br />{result?.layer2.tamperingVerdict ?? 'No scan result'}</div>
+                          <div className="border-t border-red-400/30 pt-2 text-right text-amber-200/70">Raw heatmap is not attached to this report</div>
+                        </div>
+                        <div style={{ left: `${elaReveal}%` }} className="pointer-events-none absolute inset-y-0 z-10 w-1 bg-[#D4AF37] shadow-[0_0_8px_rgba(212,175,55,.8)]" />
+                        <input aria-label="Reveal ELA comparison" type="range" min="0" max="100" value={elaReveal} onChange={(event) => setElaReveal(Number(event.target.value))} className="absolute inset-0 z-20 h-full w-full cursor-ew-resize opacity-0" />
+                      </div>
+                      <p className="mt-1 text-[9px] text-[#2B1609]/65">Drag across the panel to compare extracted fields with the ELA signal.</p>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                        <div className="rounded-lg border border-[#D4AF37]/30 bg-white/75 p-3"><span className="block text-[9px] uppercase text-[#765A35]">ELA anomaly score</span><strong>{result?.layer2.elaAnomalyScore ?? 'Not available'}<span className="font-normal"> / 100</span></strong></div>
+                        <div className="rounded-lg border border-[#D4AF37]/30 bg-white/75 p-3"><span className="block text-[9px] uppercase text-[#765A35]">Sharpness score</span><strong>{result?.layer2.laplacianBlurScore ?? 'Not available'}<span className="font-normal"> · variance</span></strong></div>
+                        <div className="rounded-lg border border-[#D4AF37]/30 bg-white/75 p-3"><span className="block text-[9px] uppercase text-[#765A35]">Forensics status</span><strong>{result?.layer2.tamperingVerdict ?? 'Not available'}</strong></div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="flex items-center gap-2 pr-8 font-cinzel text-sm font-bold text-[#4A1504]"><Network className="h-4 w-4" />APH rule citations</h3>
+                      {citations.length ? <ul className="mt-2 space-y-2">{citations.map((citation) => <li key={citation.id} className="rounded-lg border border-red-200 bg-white/75 p-3"><strong>{citation.aphClause}: {citation.ruleTitle}</strong><p className="mt-1 text-[10px]">Threshold: {citation.statutoryThreshold} · Observed: {citation.institutionalValue} · Difference: {citation.delta}</p></li>)}</ul> : <p className="mt-2 text-[11px] text-[#2B1609]/75">No rule citations are attached to this report result.</p>}
+                      <p className="mt-2 text-[10px] text-[#2B1609]/65">Review the cited provision and source evidence before drawing a conclusion.</p>
+                    </>
+                  )}
+                </section>
+              )}
+
               {/* Citations / Violations if any */}
               {citations.length > 0 && (
                 <div className="p-4 bg-red-500/10 border-l-4 border-red-700 rounded-r-xl">
                   <h4 className="font-cinzel font-bold text-red-900 text-xs mb-2 flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4 text-red-700" />
-                    Statutory Deficiencies Cited under AICTE Regulations
+                    APH rule references flagged for review
                   </h4>
                   <ul className="space-y-1.5 text-[11px] text-[#2B1609]/90">
                     {citations.map((citation) => (
@@ -227,49 +277,51 @@ export const OfficialInspectionReportModal: React.FC<Props> = ({
                     Cryptographically Immutable Merkle Tree Audit Digest
                   </span>
                   <p className="font-mono text-[10px] break-all text-[#2B1609]/90 bg-white/70 p-1.5 rounded border border-[#D4AF37]/30">
-                    {merkleRoot}
+                    {merkleRoot || 'No audit root available for this result'}
                   </p>
                   <p className="text-[10px] text-[#2B1609]/60">
-                    National Academic Scrutiny Ledger • Tamper-Proof SHA-256 Proof Path
+                    SATYA audit digest · A root digest is not an inclusion proof or a digital signature.
                   </p>
                 </div>
                 <div className="text-center shrink-0">
-                  <div className="w-20 h-20 bg-white p-1 rounded-lg border border-[#D4AF37]/50 shadow-sm flex items-center justify-center">
-                    <QrCode className="w-16 h-16 text-[#4A1504]" />
-                  </div>
-                  <span className="block text-[9px] font-mono text-[#2B1609]/70 mt-1">Scan to Verify</span>
+                    <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-[#D4AF37]/50 bg-white p-3 shadow-sm">
+                      <FileText className="h-12 w-12 text-[#4A1504]" />
+                    </div>
+                  <span className="block text-[9px] font-mono text-[#2B1609]/70 mt-1">No verification QR attached</span>
                 </div>
               </div>
 
-              {/* Officer Signature Section */}
-              <div className="pt-6 mt-6 border-t border-[#D4AF37]/40 flex flex-col md:flex-row justify-between items-end gap-6">
+              <section className="relative rounded-xl border border-[#D4AF37]/45 bg-[#F5E6C8]/85 p-4">
+                <h3 className="font-cinzel text-xs font-bold text-[#4A1504]">Regulatory context and review limits</h3>
+                <p className="mt-1 text-[10px] leading-relaxed text-[#2B1609]/80">
+                  SATYA organizes checks against APH 2024–2027 requirements and AICTE Act provisions referenced in its source material. The workflow presents review signals; it does not make or issue an AICTE decision.
+                </p>
+                <p className="mt-2 border-l-2 border-[#9A7429] pl-3 text-[10px] leading-relaxed text-[#2B1609]/80">
+                  Appeal information: Section 10(k) concerns AICTE approval functions; it is not the appeal clause. APH 2024–2027 refers to appeal routes under Clauses 1.11 and 2.23 in applicable circumstances. Confirm the current route and deadline in the official order; this report does not create appeal rights.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-3 text-[10px] font-semibold text-[#4A1504]">
+                  <a className="inline-flex items-center gap-1 underline decoration-[#9A7429]/60 underline-offset-2" href="https://www.indiacode.nic.in/handle/123456789/1880" target="_blank" rel="noreferrer">AICTE Act · India Code <ExternalLink className="h-3 w-3" /></a>
+                  <a className="inline-flex items-center gap-1 underline decoration-[#9A7429]/60 underline-offset-2" href="https://www.aicte.gov.in/sites/default/files/APH%20Final.pdf" target="_blank" rel="noreferrer">APH 2024–2027 · AICTE <ExternalLink className="h-3 w-3" /></a>
+                </div>
+              </section>
+
+              {/* Review status. This report is not signed or issued by an officer. */}
+              <div className="pt-5 mt-5 border-t border-[#D4AF37]/40 flex flex-col md:flex-row justify-between items-start gap-4">
                 <div>
                   <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border mb-2 ${
                     verdict === 'PASSED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                    !verdict ? 'bg-slate-100 text-slate-700 border-slate-300' :
                     'bg-red-100 text-red-800 border-red-300'
                   }`}>
                     {verdict === 'PASSED' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />}
-                    {verdict !== 'PASSED' && <AlertTriangle className="w-3.5 h-3.5 text-red-700" />}
-                    VERDICT: {verdict.replace('_', ' ')}
+                    {verdict && verdict !== 'PASSED' && <AlertTriangle className="w-3.5 h-3.5 text-red-700" />}
+                    {verdict ? `REVIEW STATUS: ${verdict.replace('_', ' ')}` : 'REVIEW STATUS: NOT ASSESSED'}
                   </div>
                   <p className="text-[10px] text-[#2B1609]/70">
-                    Order generated on: {new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
+                    Review summary generated on: {new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
                   </p>
                 </div>
-                <div className="text-right">
-                  <div className="font-serif italic text-xs text-[#4A1504] mb-1 font-bold">
-                    [Digitally Signed via DSC Token]
-                  </div>
-                  <div className="border-b border-[#4A1504]/50 pb-1 mb-1 font-cinzel font-bold text-xs text-[#2B1609]">
-                    Authorized AICTE Scrutiny Officer
-                  </div>
-                  <div className="text-[10px] text-[#2B1609]/70 font-medium">
-                    {roleLabels[officerRole]}
-                  </div>
-                  <div className="text-[9px] text-[#2B1609]/50">
-                    All India Council for Technical Education, New Delhi
-                  </div>
-                </div>
+                <div className="rounded-lg border border-[#D4AF37]/40 bg-white/70 px-3 py-2 text-[10px] text-[#4A1504]">Not digitally signed · no officer endorsement</div>
               </div>
             </div>
           </div>

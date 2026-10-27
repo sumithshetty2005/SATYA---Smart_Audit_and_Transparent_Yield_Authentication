@@ -35,30 +35,30 @@ export const ScrutinyHeader: React.FC<Props> = ({
 }) => {
   const navTabs: { id: LayerId; label: string; icon: React.ReactNode; badge?: string; badgeColor?: string }[] = [
     { id: 'overview', label: 'Executive Briefing', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { id: 'layer1', label: '1. Ingestion & LayoutLMv3', icon: <FileSearch className="w-4 h-4" /> },
+    { id: 'layer1', label: 'Ingestion & LayoutLMv3', icon: <FileSearch className="w-4 h-4" /> },
     {
       id: 'layer2',
-      label: '2. Forensics & ELA Hub',
+      label: 'Forensics & ELA Hub',
       icon: <Fingerprint className="w-4 h-4" />,
       badge: institution.layer2.tamperingVerdict === 'CLEAN' ? 'Clean' : 'Alert',
       badgeColor: institution.layer2.tamperingVerdict === 'CLEAN' ? 'bg-emerald-600' : 'bg-red-600',
     },
     {
       id: 'layer3',
-      label: '3. DigiLocker & PKI',
+      label: 'DigiLocker & PKI',
       icon: <ShieldCheck className="w-4 h-4" />,
       badge: institution.layer3.pkiCertificate.digestMatch ? 'Valid' : 'Digest Error',
       badgeColor: institution.layer3.pkiCertificate.digestMatch ? 'bg-emerald-600' : 'bg-red-600',
     },
     {
       id: 'layer4',
-      label: '4. GraphRAG APH Rules',
+      label: 'GraphRAG APH Rules',
       icon: <Network className="w-4 h-4" />,
       badge: institution.layer4.citations.length > 0 ? `${institution.layer4.citations.length} Gaps` : 'Passed',
       badgeColor: institution.layer4.citations.length > 0 ? 'bg-red-600' : 'bg-emerald-600',
     },
-    { id: 'layer5', label: '5. Vision CV & CAD', icon: <Eye className="w-4 h-4" /> },
-    { id: 'layer6', label: '6. Merkle Audit & Orders', icon: <Scroll className="w-4 h-4" /> },
+    { id: 'layer5', label: 'Vision CV & CAD', icon: <Eye className="w-4 h-4" /> },
+    { id: 'layer6', label: 'Merkle Audit & Orders', icon: <Scroll className="w-4 h-4" /> },
     {
       id: 'anomalies',
       label: 'Cross-Anomalies & IHI',

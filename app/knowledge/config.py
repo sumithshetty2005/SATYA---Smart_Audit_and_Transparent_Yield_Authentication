@@ -33,7 +33,7 @@ def _parse_keys(env_val: str) -> List[str]:
 _raw_groq = os.getenv("GROQ_API_KEY", "")
 GROQ_API_KEYS: List[str] = _parse_keys(_raw_groq)
 GROQ_API_KEY: str = GROQ_API_KEYS[0] if GROQ_API_KEYS else ""
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "gpt-oss-120b")
 
 _raw_gemini = os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", ""))
 GEMINI_API_KEYS: List[str] = _parse_keys(_raw_gemini)

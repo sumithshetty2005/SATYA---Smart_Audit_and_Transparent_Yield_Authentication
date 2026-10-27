@@ -289,7 +289,7 @@ async def compliance_audit_endpoint(
       filtered on programme and location facts.
     - Validates regulatory evidence provenance (edition currency, active exceptions).
     - Coordinates LangGraph multi-agent orchestration (Retriever, Evaluator, Synthesizer)
-      with dual LLMs (primary Groq Llama 3.1 8B with automatic Google Gemini API fallback).
+      with dual LLMs (primary Groq gpt-oss-120b with automatic Google Gemini API fallback).
     - Returns structured AICTE regulatory audit report citing exact handbook sections and clauses.
     """
     try:

@@ -42,7 +42,7 @@ See the [SATYA architecture diagram](docs/architecture.md) for the current appli
   - `Retriever Agent`: Queries hybrid stores and executes controlled 1- to 2-hop Neo4j traversals dynamically filtered on application facts.
   - `Compliance Evaluator Agent`: Audits Layer 1–3 outputs against APH statutory formulas.
   - `Audit Synthesizer Agent`: Synthesizes final regulatory verdicts citing exact APH clauses.
-- **Dual LLMs**: Primary Groq Llama 3.1 8B Instruct (`langchain-groq`) with automatic Google Gemini API fallback (`langchain-google-genai`) and deterministic offline evaluation.
+- **Dual LLMs**: Primary Groq gpt-oss-120b (`langchain-groq`) with automatic Google Gemini API fallback (`langchain-google-genai`) and deterministic offline evaluation.
 
 ### Layer 5: Analytics, Audit Reporting & Dashboard Integration (`app/analytics/`)
 - **LayerFiveAnalyticsEngine (`report_generator.py`)**:
