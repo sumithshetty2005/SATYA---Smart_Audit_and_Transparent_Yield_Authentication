@@ -163,15 +163,6 @@ FastAPI's interactive `/docs` page lists request formats and responses. Main API
 - **Audit ledger:** `/api/v1/merkle/...`.
 - **Problem statement portal:** `/api/v1/problem-statements/...`.
 
-## Current scope and limitations
-
-- The instant positive and risk walkthroughs use illustrative sample data. They are separate from a document-derived audit and are intended to demonstrate how the interface presents findings.
-- DigiLocker and registry checks require an authorized, configured integration. Without one, the service reports that verification is unavailable; it does not mean a record passed or failed.
-- CAD measurements depend on usable drawing geometry and a supplied or detected scale. If a scale or route cannot be established, an area or egress measurement should remain unassessed.
-- Optional LLM, embedding, and graph services depend on local setup. The project can use fallbacks for some paths; a fallback is not the same as a live external verification.
-- Dashboard and problem-statement information may be held in process memory, while the local Merkle ledger uses SQLite. This is not a claim of production-scale persistence or a public blockchain.
-- SATYA is not an official AICTE service. Always confirm findings against original records, applicable official documents, and authorized review procedures.
-
 ## Repository guide
 
 - `frontend/` — React application, separate page entry points, and static assets.
