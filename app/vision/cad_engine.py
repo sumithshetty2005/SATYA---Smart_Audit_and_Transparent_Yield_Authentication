@@ -18,7 +18,11 @@ import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import fitz  # PyMuPDF
-from shapely.geometry import Polygon, box
+try:
+    from shapely.geometry import Polygon, box
+except ImportError:  # pragma: no cover
+    Polygon = None
+    box = None
 
 
 # Default AICTE Approval Process Handbook (APH) 2024-2027 Normative Guidelines

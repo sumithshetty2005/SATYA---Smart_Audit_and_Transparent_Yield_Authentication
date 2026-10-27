@@ -18,8 +18,12 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import cv2
 import fitz  # PyMuPDF
 import numpy as np
-from pdfminer.pdfdocument import PDFDocument
-from pdfminer.pdfparser import PDFParser
+try:
+    from pdfminer.pdfdocument import PDFDocument
+    from pdfminer.pdfparser import PDFParser
+except ImportError:  # pragma: no cover
+    PDFDocument = None
+    PDFParser = None
 from PIL import Image
 
 # Known image/PDF manipulation and tampering software signatures
@@ -347,15 +351,16 @@ def extract_pdf_metadata(
 
     # 2. pdfminer.six structural analysis (incremental revision / XRef count)
     revision_count = 1
-    try:
-        stream = io.BytesIO(pdf_bytes)
-        parser = PDFParser(stream)
-        pdf_doc = PDFDocument(parser)
-        if hasattr(pdf_doc, "xrefs") and pdf_doc.xrefs:
-            revision_count = max(1, len(pdf_doc.xrefs))
-    except Exception:
-        # Fallback to single revision if parser encounters encrypted or unusual stream
-        revision_count = 1
+    if PDFParser is not None and PDFDocument is not None:
+        try:
+            stream = io.BytesIO(pdf_bytes)
+            parser = PDFParser(stream)
+            pdf_doc = PDFDocument(parser)
+            if hasattr(pdf_doc, "xrefs") and pdf_doc.xrefs:
+                revision_count = max(1, len(pdf_doc.xrefs))
+        except Exception:
+            # Fallback to single revision if parser encounters encrypted or unusual stream
+            revision_count = 1
 
     # 3. Timestamp analysis
     anomalies: List[str] = []

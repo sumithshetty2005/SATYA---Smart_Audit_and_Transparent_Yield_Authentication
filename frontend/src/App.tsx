@@ -1,12 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import campusImage from './assets/satya-campus.webp';
-import { gsap } from 'gsap';
 import { ThreeBackground } from './components/ThreeBackground';
 import { DocumentFindingsView, type ScrutinyResult } from './components/DocumentFindingsView';
 import { OfficialInspectionReportModal } from './components/OfficialInspectionReportModal';
 import { SpecificationsModal } from './components/SpecificationsModal';
 import { Footer } from './components/Footer';
 import { AuditSignalAnimation } from './components/AuditSignalAnimation';
+import { FeatureCardShowcase } from './components/FeatureCardShowcase';
 import {
   UploadCloud,
   FileCheck2,
@@ -22,6 +22,7 @@ import {
   Scroll,
   Award,
   CheckCircle2,
+  Play,
 } from 'lucide-react';
 
 export function App() {
@@ -41,24 +42,6 @@ export function App() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const findingsRef = useRef<HTMLDivElement>(null);
-  const featureCardsRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const cards = featureCardsRef.current?.querySelectorAll<HTMLElement>('.satya-feature-card');
-    if (!cards?.length) return;
-    const animations = gsap.fromTo(cards,
-      { y: 48, opacity: 0, rotateX: 8 },
-      { y: 0, opacity: 1, rotateX: 0, duration: 0.75, stagger: 0.12, ease: 'power3.out', paused: true }
-    );
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        animations.play();
-        observer.disconnect();
-      }
-    }, { threshold: 0.18 });
-    observer.observe(featureCardsRef.current!);
-    return () => { observer.disconnect(); animations.kill(); };
-  }, []);
 
   const steps = [
     { label: 'PDF page inventory', icon: <FileText className="w-4 h-4" /> },
@@ -549,22 +532,7 @@ export function App() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
             <div><p className="text-[10px] font-bold tracking-[0.24em] uppercase text-[#A27724]">One filing. Multiple checks.</p><h2 className="font-cinzel text-2xl md:text-3xl font-bold text-[#4A1504] mt-1">A clearer path to a trusted review</h2></div>
           </div>
-          <div ref={featureCardsRef} className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 perspective-1000">
-            {[
-              { n: '01', title: 'Read the document', icon: <FileText />, text: 'Extract structured fields and layout signals from institutional applications and supporting records.', tag: 'LAYOUT ANALYSIS', visual: 'scan' },
-              { n: '02', title: 'Inspect for alterations', icon: <Fingerprint />, text: 'Surface image inconsistencies and suspicious edits for a reviewer to examine.', tag: 'VISUAL FORENSICS', visual: 'forensic' },
-              { n: '03', title: 'Verify the source', icon: <Database />, text: 'Check available signatures, QR references and provenance signals against authoritative records.', tag: 'SOURCE CHECKS', visual: 'verify' },
-              { n: '04', title: 'Compare with APH rules', icon: <Network />, text: 'Connect application facts to applicable Approval Process Handbook requirements and citations.', tag: 'RULE MAPPING', visual: 'graph' },
-              { n: '05', title: 'Review infrastructure', icon: <Eye />, text: 'Bring spatial and visual evidence into view to help assess facilities and declared resources.', tag: 'EVIDENCE REVIEW', visual: 'evidence' },
-              { n: '06', title: 'Seal the audit trail', icon: <ShieldCheck />, text: 'Present findings in a consolidated report with integrity signals for accountable review.', tag: 'AUDIT REPORTING', visual: 'ledger' },
-            ].map((feature) => (
-              <article key={feature.n} className={`satya-feature-card satya-card-${feature.visual} glass-parchment-gold rounded-2xl p-5 min-h-[240px] relative overflow-hidden group`}>
-                <div className="satya-card-visual" aria-hidden="true"><span className="satya-orbit" /><span className="satya-signal" /></div>
-                <div className="relative z-10 flex items-start justify-between"><span className="w-10 h-10 rounded-xl bg-[#4A1504] text-[#D4AF37] flex items-center justify-center">{React.cloneElement(feature.icon, { className: 'w-5 h-5' })}</span><span className="text-xs font-mono text-[#9A752E]">{feature.n}</span></div>
-                <div className="relative z-10 mt-8"><p className="text-[9px] font-bold tracking-[0.2em] text-[#9A752E]">{feature.tag}</p><h3 className="font-cinzel text-lg font-bold text-[#4A1504] mt-1">{feature.title}</h3><p className="text-xs leading-relaxed text-[#2B1609]/75 mt-2 max-w-sm">{feature.text}</p></div>
-              </article>
-            ))}
-          </div>
+          <FeatureCardShowcase />
         </section>
 
         <div className="pb-2">
@@ -638,27 +606,37 @@ export function App() {
               </div>
 
               {/* Action Row & Sample Demo Buttons */}
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-2">
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="font-semibold text-[#4A1504] text-xs mr-1">Instant Demo Samples:</span>
-                  <button
-                    type="button"
-                    onClick={() => executeScrutinyAnalysis(false)}
-                    disabled={isAnalyzing}
-                    className="px-3 py-1.5 rounded-xl bg-white border border-[#D4AF37]/50 hover:bg-[#FAF4E8] text-[#4A1504] font-medium transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Positive scenario (simulated fixture)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => executeScrutinyAnalysis(true)}
-                    disabled={isAnalyzing}
-                    className="px-3 py-1.5 rounded-xl bg-white border border-red-300 hover:bg-red-50 text-red-900 font-medium transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
-                  >
-                    <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                    <span>Risk scenario (simulated fixture)</span>
-                  </button>
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 pt-2">
+                <div className="w-full md:max-w-[650px] rounded-2xl border-2 border-[#D4AF37]/70 bg-gradient-to-br from-[#4A1504] to-[#2B1609] p-4 shadow-[0_12px_28px_rgba(74,21,4,.2)]">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-[#FFF3B0]">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#D4AF37] text-[#4A1504]"><Play className="h-4 w-4 fill-current" /></span>
+                      <div><p className="text-[10px] font-extrabold tracking-[0.18em]">TRY AN INTERACTIVE DEMO</p><p className="mt-0.5 text-[11px] font-medium tracking-normal text-[#FBF4E6]/75">Explore sample audit results · No upload needed</p></div>
+                    </div>
+                    <span className="rounded-full border border-[#D4AF37]/40 bg-white/5 px-2.5 py-1 text-[9px] font-bold tracking-wider text-[#F3D77B]">2 SCENARIOS</span>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => executeScrutinyAnalysis(false)}
+                      disabled={isAnalyzing}
+                      className="group flex min-h-[58px] items-center gap-3 rounded-xl border border-emerald-300/60 bg-[#F7FBF5] px-3 py-2.5 text-left text-[#244735] shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+                      <span className="min-w-0"><span className="block text-xs font-extrabold">See a clear review</span><span className="mt-0.5 block text-[10px] text-[#244735]/70">Illustrative positive scenario</span></span>
+                      <ArrowRight className="ml-auto h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executeScrutinyAnalysis(true)}
+                      disabled={isAnalyzing}
+                      className="group flex min-h-[58px] items-center gap-3 rounded-xl border border-red-300/70 bg-[#FFF7F5] px-3 py-2.5 text-left text-[#78251D] shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <AlertTriangle className="h-5 w-5 shrink-0 text-red-600" />
+                      <span className="min-w-0"><span className="block text-xs font-extrabold">See a flagged review</span><span className="mt-0.5 block text-[10px] text-[#78251D]/70">Illustrative risk scenario</span></span>
+                      <ArrowRight className="ml-auto h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
+                    </button>
+                  </div>
                 </div>
 
                 <button

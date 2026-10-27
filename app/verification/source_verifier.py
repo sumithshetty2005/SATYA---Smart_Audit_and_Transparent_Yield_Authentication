@@ -24,8 +24,12 @@ import cv2
 import fitz  # PyMuPDF
 import numpy as np
 from PIL import Image
-from pyhanko.pdf_utils.reader import PdfFileReader
-from pyhanko.sign.validation import validate_pdf_signature
+try:
+    from pyhanko.pdf_utils.reader import PdfFileReader
+    from pyhanko.sign.validation import validate_pdf_signature
+except ImportError:  # pragma: no cover
+    PdfFileReader = None
+    validate_pdf_signature = None
 
 # Authoritative government and council web domains
 AUTHORITATIVE_DOMAINS = [
@@ -281,6 +285,16 @@ class LayerThreeSourceVerifier:
         """
         pdf_bytes = _read_pdf_bytes(pdf_path)
         stream = io.BytesIO(pdf_bytes)
+
+        if PdfFileReader is None:
+            return {
+                "signatures_found": 0,
+                "all_intact": False,
+                "all_valid": False,
+                "tampered_post_signing": False,
+                "signatures": [],
+                "error": "pyhanko library is not available in current runtime",
+            }
 
         try:
             reader = PdfFileReader(stream)
