@@ -326,16 +326,6 @@ These screenshots show the web app and sample review views. Sample findings are 
 
 ![Additional capture of the SATYA GraphRAG rules screen](docs/images/graphrag-rules-repeat-capture.png)
 
-## Technology
-
-- **Frontend:** React, TypeScript, Vite, Tailwind CSS, GSAP, Three.js, Framer Motion, and Lucide icons.
-- **Backend:** Python, FastAPI, and Pydantic.
-- **Document and evidence processing:** PyMuPDF, LayoutLMv3/Transformers, OpenCV, Pillow, pdfminer.six, pyHanko, Shapely, and Ultralytics.
-- **Regulatory retrieval and reasoning:** LangChain, LangGraph, BM25, sentence-transformers, optional Neo4j, and optional Groq or Google Gemini providers.
-- **Reporting and integrity:** ReportLab, cryptography, SHA-256, SQLite for the Merkle audit ledger.
-
-External services and model providers require their own configuration. Optional items in this list may fall back to local or rule-based behavior, or report as unavailable, depending on the code path and environment.
-
 ## Run locally
 
 ### Requirements
