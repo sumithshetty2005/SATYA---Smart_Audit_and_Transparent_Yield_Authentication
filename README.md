@@ -415,6 +415,4 @@ FastAPI's interactive `/docs` page lists request formats and responses. Main API
 - `docs/images/` — architecture diagram and reader-facing screenshots used in this README.
 - `tests/` — automated checks and scenario fixtures.
 
-## License
-
-No license is specified in this repository at this time. Contact the project maintainers before reusing or redistributing the source.
+Built by **Team Last Mile**.
