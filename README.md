@@ -270,7 +270,6 @@ To validate regulatory reasoning accuracy and legal reliability, the Agentic Gra
 | **Faithfulness / Groundedness** | 78.4% | **95.6%** | Ratio of claims in generated audit report directly grounded in retrieved APH text (near-zero hallucinations) |
 | **Answer Relevance** | 76.1% | **93.2%** | Semantic alignment and completeness of regulatory recommendations for scrutiny committees |
 | **Multi-Hop Exception Coverage** | 34.2% | **91.5%** | Accuracy in joining disconnected handbook sections (e.g., base land requirement linked to hilly terrain exemptions) |
-| **Statutory Formula Accuracy** | 41.5% | **100.0%** | Precision of mathematical compliance evaluations (FSR calculations and 1:2:6 cadre proportioning via deterministic evaluator) |
 
 #### Composite Compliance Scoring Function ($0 - 100$)
 The final regulatory score produced by the LangGraph multi-agent team is computed deterministically from itemized finding severities:
