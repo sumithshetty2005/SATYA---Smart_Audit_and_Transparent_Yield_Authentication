@@ -1,10 +1,10 @@
-"""Hugging Face Spaces Entry Point for SATYA AICTE Compliance Engine."""
+"""Optional Gradio wrapper around the SATYA FastAPI service."""
 
 import gradio as gr
 import uvicorn
-from main import app as fastapi_app
+from backend.main import app as fastapi_app
 
-# Create a clean Gradio interface for Hugging Face Spaces
+# Create a small Gradio landing page for environments that choose to use it.
 with gr.Blocks(title="SATYA — AICTE Compliance Engine API") as demo:
     gr.Markdown("# 🏛️ SATYA — Smart Audit and Transparent Yield Authentication")
     gr.Markdown("### AICTE Multi-Layer Compliance & Forensic Verification Engine")
@@ -19,4 +19,4 @@ with gr.Blocks(title="SATYA — AICTE Compliance Engine API") as demo:
 app = gr.mount_gradio_app(fastapi_app, demo, path="/")
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=7860)
+    uvicorn.run("backend.gradio_app:app", host="0.0.0.0", port=7860)

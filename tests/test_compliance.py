@@ -57,7 +57,7 @@ from app.schemas.payload import (
     QRVerificationResult,
     SourceVerificationReceipt,
 )
-from main import app
+from backend.main import app
 
 client = TestClient(app)
 

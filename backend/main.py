@@ -5,23 +5,37 @@ import shutil
 import tempfile
 from typing import Any, Dict, Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile, status
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.forensics.ela_checker import analyze_document_forensics
 from app.ingestion.layout_engine import LayoutLMv3IngestionEngine
+from app.knowledge.agent import execute_compliance_audit
+from app.schemas.compliance import (
+    ComplianceAuditRequest,
+    ComplianceAuditResponse,
+)
 from app.schemas.payload import (
     ExtractedApplicationPayload,
     ForensicsResponse,
     SourceVerificationReceipt,
 )
+from app.routers.analytics_router import router as analytics_router
+from app.routers.audit_router import router as audit_router
+from app.routers.problem_statements_router import router as problem_statements_router
+from app.routers.verification_router import router as verification_router
+from app.routers.vision_router import router as vision_router
 from app.verification.source_verifier import verify_authoritative_source
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Initialize FastAPI application
 app = FastAPI(
-    title="AICTE Compliance Engine API",
+    title="AICTE Compliance Engine & Problem Statement Provider Portal API",
     version="1.0.0",
-    description="Layer 1 Layout Analysis | Layer 2 Visual Forensics | Layer 3 Authoritative Source Verification",
+    description="Layer 1 Layout Analysis | Layer 2 Visual Forensics | Layer 3 Authoritative Source Verification | Layer 4 Agentic GraphRAG | Layer 5 Analytics & Audit Reporting | Layer 6 Merkle Audit Chain Engine | Problem Statement Provider Portal",
 )
 
 # Configure CORS
@@ -32,6 +46,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register Layer Routers
+app.include_router(analytics_router)
+app.include_router(audit_router)
+app.include_router(problem_statements_router)
+app.include_router(verification_router)
+app.include_router(vision_router)
 
 # Engine singleton holder (lazy initialization to optimize startup time)
 _layout_engine: Optional[LayoutLMv3IngestionEngine] = None
@@ -46,12 +67,18 @@ def get_layout_engine() -> LayoutLMv3IngestionEngine:
 
 
 @app.get("/", tags=["Health"])
-async def root() -> Dict[str, str]:
-    """Root status endpoint."""
+async def root(request: Request) -> Any:
+    """Root endpoint: serves the AICTE Problem Statement Provider Portal if requested via browser, or JSON API status."""
+    frontend_index = os.path.join(PROJECT_ROOT, "frontend", "dist", "index.html")
+    accept_header = request.headers.get("accept", "")
+    if "text/html" in accept_header and os.path.exists(frontend_index):
+        return FileResponse(frontend_index)
     return {
         "status": "online",
-        "service": "AICTE Compliance Engine",
-        "layers": "Layer 1 - Ingestion | Layer 2 - Visual Forensics | Layer 3 - Source Verification",
+        "service": "AICTE Compliance Engine & Problem Statement Provider Portal",
+        "layers": "Layer 1 Ingestion | Layer 2 Forensics | Layer 3 Source Verification | Layer 4 GraphRAG | Layer 5 Analytics | PS Provider Portal",
+        "portal_url": "/portal",
+        "docs_url": "/docs",
         "version": "1.0.0",
     }
 
@@ -245,7 +272,52 @@ async def verify_source_endpoint(
         )
 
 
+@app.post(
+    "/api/v1/compliance-audit",
+    response_model=ComplianceAuditResponse,
+    tags=["Compliance"],
+    summary="Execute Layer 4 Agentic GraphRAG & Regulatory Verification Audit",
+)
+async def compliance_audit_endpoint(
+    request: ComplianceAuditRequest,
+) -> ComplianceAuditResponse:
+    """Execute Layer 4 Agentic GraphRAG & Regulatory Engine Audit.
+
+    - Receives consolidated payload from Layers 1-3 (extracted application fields,
+      visual forensics score breakdown, and PKI/QR source verification receipts)
+      along with institutional facts (programme, location type, sanctioned intake).
+    - Queries hybrid BM25 + BGE-M3 vector store with Reciprocal Rank Fusion (RRF).
+    - Performs controlled 1- to 2-hop Neo4j knowledge graph traversal dynamically
+      filtered on programme and location facts.
+    - Validates regulatory evidence provenance (edition currency, active exceptions).
+    - Coordinates LangGraph multi-agent orchestration (Retriever, Evaluator, Synthesizer)
+      with dual LLMs (primary Groq gpt-oss-120b with automatic Google Gemini API fallback).
+    - Returns structured AICTE regulatory audit report citing exact handbook sections and clauses.
+    """
+    try:
+        report = execute_compliance_audit(request)
+        return report
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Compliance audit orchestration failed: {str(exc)}",
+        )
+
+
+# Mount Frontend Assets & Static Portal
+_frontend_dist = os.path.join(PROJECT_ROOT, "frontend", "dist")
+_frontend_assets = os.path.join(_frontend_dist, "assets")
+
+if os.path.exists(_frontend_assets):
+    app.mount("/assets", StaticFiles(directory=_frontend_assets), name="assets")
+
+if os.path.exists(_frontend_dist):
+    app.mount("/portal", StaticFiles(directory=_frontend_dist, html=True), name="portal")
+
+
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)

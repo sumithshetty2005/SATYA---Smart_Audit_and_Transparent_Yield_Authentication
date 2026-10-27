@@ -36,6 +36,8 @@ Desktop.ini
 *.log
 scratch/
 assets_extracted/
+.agent/
+/packages.txt
 frontend/node_modules/
 frontend/dist/
 

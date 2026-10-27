@@ -1,6 +1,6 @@
 # SATYA Architecture
 
-This diagram follows the currently wired application in `main.py`, the routers in `app/routers/`, and the React client in `frontend/`. It separates the synthetic packet demonstration from the full audit APIs so the prototype path is not mistaken for a live regulatory or issuer integration.
+This diagram follows the currently wired application in `backend/main.py`, the routers in `app/routers/`, and the React client in `frontend/`. It separates the synthetic packet demonstration from the full audit APIs so the demo path is not mistaken for a live regulatory or issuer integration.
 
 ## System overview
 
@@ -17,7 +17,7 @@ flowchart LR
     React --> Views
   end
 
-  subgraph API[FastAPI application — main.py]
+  subgraph API["FastAPI application - backend/main.py"]
     Core[Document and compliance endpoints]
     Vision[Layer 5 vision / CV router]
     Verification[Layer 3 verification router<br/>fail-closed prototype routes]
@@ -54,7 +54,8 @@ flowchart LR
     APH --> Graph
     Retrieval --> Agents
     Graph --> Agents
-    Agents <--> LLM
+    Agents --> LLM
+    LLM --> Agents
   end
 
   subgraph Stores[Local / configured state]
@@ -86,7 +87,7 @@ flowchart LR
 sequenceDiagram
   actor Reviewer
   participant UI as React frontend
-  participant API as FastAPI (main.py)
+  participant API as FastAPI (backend/main.py)
   participant Ingest as Layer 1 ingestion
   participant Forensics as Layer 2 forensics
   participant Verify as Layer 3 verification
@@ -110,7 +111,7 @@ sequenceDiagram
   Audit->>LLM: Synthesize when configured
   LLM-->>Audit: Response or deterministic fallback
   Audit-->>API: Rule-linked findings and citations
-  API->>Analytics: Generate JSON/PDF report; update dashboard feed
+  API->>Analytics: Generate JSON/PDF report and update dashboard feed
   Analytics-->>API: Audit report / certificate
   API-->>UI: Findings, report, analytics
   UI-->>Reviewer: Present evidence for human review
@@ -129,4 +130,4 @@ sequenceDiagram
 - The knowledge retriever combines BM25 and vector results with reciprocal-rank fusion, then uses a bounded graph traversal. The code supports an in-memory graph fallback and optional Neo4j; do not assume Neo4j is required for every run.
 - Analytics submissions and problem statement/ticket data are held in process memory. The Merkle audit ledger is local SQLite. The diagram does not imply a production database, distributed ledger, or durable storage for dashboard and portal state.
 - Layer 5 vision endpoints cover CAD/floor-plan analysis, EXIF/geolocation inspection, asset detection, and combined infrastructure analysis. These are API capabilities and should not be read as proof that every uploaded document automatically passes through each check.
-- `backend/` contains a separate/older backend tree. The documented run command and current frontend proxy target the repository-root `main.py` application shown here.
+- `backend/main.py` is the canonical FastAPI entry point. It imports the shared modules from the repository-root `app/` package; the Vite development proxy continues to target FastAPI on port 8000.

@@ -6,10 +6,8 @@ from pathlib import Path
 
 # Ensure root and backend are on sys.path
 root_dir = Path(__file__).resolve().parent.parent.parent
-backend_dir = root_dir / "backend"
-for p in [str(root_dir), str(backend_dir)]:
-    if p not in sys.path:
-        sys.path.insert(0, p)
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
 
 import fitz
 

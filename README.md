@@ -128,7 +128,7 @@ The backend requirements include machine-learning and computer-vision packages, 
 From the repository root:
 
 ```bash
-python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 FastAPI health check: `http://127.0.0.1:8000/health`
@@ -167,7 +167,8 @@ FastAPI's interactive `/docs` page lists request formats and responses. Main API
 
 - `frontend/` — React application, separate page entry points, and static assets.
 - `app/` — FastAPI routers and document, vision, verification, knowledge, and analytics modules.
-- `main.py` — current root FastAPI application entry point.
+- `backend/main.py` — FastAPI application entry point used by Render and local development.
+- `backend/gradio_app.py` — optional Gradio wrapper around the FastAPI service.
 - `docs/architecture.md` — detailed architecture flow and implementation boundaries.
 - `docs/images/` — architecture diagram and reader-facing screenshots used in this README.
 - `tests/` — automated checks and scenario fixtures.

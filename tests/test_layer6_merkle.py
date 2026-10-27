@@ -5,7 +5,7 @@ Problem Statement SH26261: AICTE Regulatory Compliance & Verification Architectu
 
 import hashlib
 from fastapi.testclient import TestClient
-from main import app
+from backend.main import app
 
 client = TestClient(app)
 
