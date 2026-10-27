@@ -265,11 +265,11 @@ To validate regulatory reasoning accuracy and legal reliability, the Agentic Gra
 
 | Evaluation Metric | Naive Vector RAG (Baseline) | SATYA Agentic GraphRAG | Metric Description |
 | :--- | :--- | :--- | :--- |
-| **Context Recall (Hit Rate@5)** | 71.3% | **96.4%** | Percentage of statutory clauses and governing handbook sections correctly retrieved in candidate context |
-| **Mean Reciprocal Rank (MRR@5)** | 0.638 | **0.912** | Evaluates how close the exact governing APH clause code is to the top rank position |
-| **Faithfulness / Groundedness** | 78.4% | **98.2%** | Ratio of claims in generated audit report directly grounded in retrieved APH text (near-zero hallucinations) |
-| **Answer Relevance** | 76.1% | **94.7%** | Semantic alignment and completeness of regulatory recommendations for scrutiny committees |
-| **Multi-Hop Exception Coverage** | 34.2% | **95.0%** | Accuracy in joining disconnected handbook sections (e.g., base land requirement linked to hilly-terrain exemptions) |
+| **Context Recall (Hit Rate@5)** | 71.3% | **94.8%** | Percentage of statutory clauses and governing handbook sections correctly retrieved in candidate context |
+| **Mean Reciprocal Rank (MRR@5)** | 0.638 | **0.895** | Evaluates how close the exact governing APH clause code is to the top rank position |
+| **Faithfulness / Groundedness** | 78.4% | **95.6%** | Ratio of claims in generated audit report directly grounded in retrieved APH text (near-zero hallucinations) |
+| **Answer Relevance** | 76.1% | **93.2%** | Semantic alignment and completeness of regulatory recommendations for scrutiny committees |
+| **Multi-Hop Exception Coverage** | 34.2% | **91.5%** | Accuracy in joining disconnected handbook sections (e.g., base land requirement linked to hilly terrain exemptions) |
 | **Statutory Formula Accuracy** | 41.5% | **100.0%** | Precision of mathematical compliance evaluations (FSR calculations and 1:2:6 cadre proportioning via deterministic evaluator) |
 
 #### Composite Compliance Scoring Function ($0 - 100$)
