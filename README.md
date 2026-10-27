@@ -17,11 +17,11 @@
 
 ## What SATYA does
 
-SATYA is a project that helps reviewers organize institutional application documents and inspect evidence relevant to the **AICTE Approval Process Handbook (APH) 2024–2027**. It brings document extraction, visual-forensics signals, source checks, rule references, infrastructure tools, and audit records into one review workflow.
+SATYA (Smart Audit and Transparent Yield Authentication) is a project that helps reviewers organize institutional application documents and inspect evidence relevant to the **AICTE Approval Process Handbook (APH) 2024–2027**. It brings document extraction, visual-forensics signals, source checks, rule references, infrastructure tools, and audit records into one review workflow.
 
 The goal is to help an official see **what was checked, what evidence supports a finding, what could not be checked, and what may need follow-up**. SATYA is a decision-support project; its results do not replace an authorized officer's review or constitute an official AICTE decision.
 
-SATYA was developed in response to AICTE problem statement **SH26261**. It is an independent project and is not commissioned, operated, or endorsed by AICTE.
+SATYA was developed in response to SIH problem statement **SH26261**. It is an independent project and is not commissioned, operated, or endorsed by AICTE.
 
 ## How a review is organized
 
