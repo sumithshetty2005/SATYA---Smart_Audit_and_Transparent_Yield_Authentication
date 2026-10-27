@@ -270,7 +270,7 @@ export const DocumentFindingsView: React.FC<Props> = ({
 
         {/* Navigation Tabs */}
         <div className="mt-5 flex items-center gap-2 border-t border-[#D4AF37]/30 pt-4 pb-2">
-          <div role="group" aria-label="Scroll through findings tabs" className="flex shrink-0 items-center gap-1">
+          <div role="group" aria-label="Scroll through findings tabs" className="order-2 flex shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={() => scrollTabs(-1)}
@@ -292,7 +292,7 @@ export const DocumentFindingsView: React.FC<Props> = ({
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
-          <div ref={tabsRef} id="findings-tabs" role="group" aria-label="Audit finding sections" className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain touch-pan-x pb-1 scrollbar-none">
+          <div ref={tabsRef} id="findings-tabs" role="group" aria-label="Audit finding sections" className="order-1 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain touch-pan-x pb-1 scrollbar-none">
           {[
             { id: 'summary', label: 'Execution Dashboard', icon: <Award className="w-4 h-4" /> },
             {
