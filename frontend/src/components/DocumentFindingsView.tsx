@@ -166,7 +166,7 @@ export const DocumentFindingsView: React.FC<Props> = ({
         <p><strong>Simulated showcase scenario.</strong> This illustrative clean/tampered example is not generated from the selected upload and does not represent live AICTE, DigiLocker, registry, or issuer verification.</p>
       </div>
       {/* Findings Header Banner */}
-      <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-md border-2 border-[#D4AF37]/50 shadow-xl relative overflow-hidden">
+      <div className="p-4 sm:p-6 rounded-2xl bg-white/80 backdrop-blur-md border-2 border-[#D4AF37]/50 shadow-xl relative overflow-hidden">
         {/* Subtle Mandala Watermark */}
         <div
           className="absolute -right-16 -top-16 w-64 h-64 pointer-events-none opacity-10 bg-contain bg-no-repeat"
@@ -240,7 +240,7 @@ export const DocumentFindingsView: React.FC<Props> = ({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mt-5 pt-4 border-t border-[#D4AF37]/30 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="mt-5 pt-4 border-t border-[#D4AF37]/30 flex items-center gap-1.5 overflow-x-auto overscroll-x-contain touch-pan-x pb-2 scrollbar-none">
           {[
             { id: 'summary', label: 'Execution Dashboard', icon: <Award className="w-4 h-4" /> },
             {
@@ -543,7 +543,7 @@ export const DocumentFindingsView: React.FC<Props> = ({
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
           <div className="lg:col-span-8">
             <div className="rounded-2xl bg-white/70 p-4 shadow-sm border border-[#D4AF37]/40">
-              <div className="flex justify-between items-center text-xs">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-xs">
                 <span className="font-cinzel font-bold text-sm text-[#4A1504]">
                   ELA document comparison
                 </span>

@@ -12,12 +12,12 @@ export const SpecificationsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/65 p-2 backdrop-blur-sm sm:p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative w-full max-w-4xl bg-[#FAF4E8] rounded-2xl shadow-2xl border-2 border-[#D4AF37]/50 p-6 md:p-8 text-[#2B1609] font-sans-modern max-h-[90vh] overflow-y-auto"
+          className="relative w-full max-w-4xl bg-[#FAF4E8] rounded-2xl shadow-2xl border-2 border-[#D4AF37]/50 p-4 sm:p-6 md:p-8 text-[#2B1609] font-sans-modern max-h-[96svh] sm:max-h-[90vh] overflow-y-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-[#D4AF37]/30">

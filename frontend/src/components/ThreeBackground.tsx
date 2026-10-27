@@ -18,9 +18,11 @@ export const ThreeBackground: React.FC = () => {
 
     const width = window.innerWidth;
     const height = window.innerHeight;
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.25 : 2));
     currentMount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -28,7 +30,7 @@ export const ThreeBackground: React.FC = () => {
     camera.position.z = 28;
 
     // --- 1. Golden Dust Particle Cloud ---
-    const particleCount = 220;
+    const particleCount = isMobile ? 90 : 220;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const scales = new Float32Array(particleCount);
@@ -184,10 +186,16 @@ export const ThreeBackground: React.FC = () => {
     window.addEventListener('resize', handleResize);
 
     // --- 4. Animation Loop ---
-    let animationFrameId: number;
-    let clock = new THREE.Clock();
+    let animationFrameId: number | undefined;
+    let lastMobileFrame = 0;
+    const clock = new THREE.Clock();
 
-    const animate = () => {
+    const animate = (timestamp: number) => {
+      if (isMobile && timestamp - lastMobileFrame < 1000 / 30) {
+        animationFrameId = requestAnimationFrame(animate);
+        return;
+      }
+      lastMobileFrame = timestamp;
       const delta = clock.getDelta();
       const elapsed = clock.getElapsedTime();
 
@@ -215,15 +223,16 @@ export const ThreeBackground: React.FC = () => {
       particles.geometry.attributes.position.needsUpdate = true;
 
       renderer.render(scene, camera);
-      animationFrameId = requestAnimationFrame(animate);
+      if (!prefersReducedMotion) animationFrameId = requestAnimationFrame(animate);
     };
 
-    animate();
+    if (prefersReducedMotion) renderer.render(scene, camera);
+    else animationFrameId = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId !== undefined) cancelAnimationFrame(animationFrameId);
       if (currentMount && renderer.domElement) {
         currentMount.removeChild(renderer.domElement);
       }

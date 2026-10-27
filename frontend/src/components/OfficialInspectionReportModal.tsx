@@ -45,12 +45,12 @@ export const OfficialInspectionReportModal: React.FC<Props> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto print:p-0 print:bg-white">
+      <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-2 backdrop-blur-sm sm:p-4 print:p-0 print:bg-white">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto bg-[#FAF4E8] text-[#2B1609] rounded-2xl shadow-2xl border-2 border-[#D4AF37]/50 p-6 md:p-10 font-sans-modern print:max-h-none print:shadow-none print:border-none print:rounded-none"
+          className="relative w-full max-w-4xl max-h-[96svh] sm:max-h-[92vh] overflow-y-auto bg-[#FAF4E8] text-[#2B1609] rounded-2xl shadow-2xl border-2 border-[#D4AF37]/50 p-4 sm:p-6 md:p-10 font-sans-modern print:max-h-none print:shadow-none print:border-none print:rounded-none"
         >
           {/* Top Bar - No-print Controls */}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-[#D4AF37]/30 print:hidden">

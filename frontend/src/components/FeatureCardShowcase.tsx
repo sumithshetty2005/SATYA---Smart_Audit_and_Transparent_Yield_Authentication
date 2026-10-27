@@ -19,6 +19,17 @@ export function FeatureCardShowcase() {
   const cardsRef = useRef<HTMLDivElement>(null);
   const counterRef = useRef<HTMLSpanElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const scrollTriggerRef = useRef<ScrollTrigger | null>(null);
+
+  const goToStage = (index: number) => {
+    const trigger = scrollTriggerRef.current;
+    if (trigger && window.matchMedia('(min-width: 768px)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const progress = index / (stages.length - 1);
+      window.scrollTo({ top: trigger.start + (trigger.end - trigger.start) * progress, behavior: 'smooth' });
+      return;
+    }
+    cardsRef.current?.querySelectorAll<HTMLElement>('[data-feature-card]')[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -88,6 +99,7 @@ export function FeatureCardShowcase() {
           invalidateOnRefresh: true,
         },
       });
+      scrollTriggerRef.current = timeline.scrollTrigger ?? null;
 
       stages.slice(1).forEach((_, step) => {
         const active = step + 1;
@@ -118,7 +130,10 @@ export function FeatureCardShowcase() {
       });
     }, stage);
 
-    return () => context.revert();
+    return () => {
+      context.revert();
+      scrollTriggerRef.current = null;
+    };
   }, []);
 
   return (
@@ -134,7 +149,7 @@ export function FeatureCardShowcase() {
 
       <div className="relative z-20 flex items-center justify-between border-b border-[#D4AF37]/30 pb-4">
         <div><p className="text-[9px] font-bold tracking-[0.24em] text-[#D4AF37]">THE SATYA REVIEW PATH</p><p className="mt-1 text-xs text-[#FBF4E6]/70">Scroll to follow a filing through each review stage</p></div>
-        <span ref={counterRef} className="font-mono text-xs tracking-widest text-[#F3D77B]">01 / 06</span>
+        <span ref={counterRef} aria-live="polite" className="font-mono text-xs tracking-widest text-[#F3D77B]">01 / 06</span>
       </div>
 
       <div ref={cardsRef} className="satya-feature-deck relative z-10 mx-auto mt-6 h-[430px] w-full md:mt-0 md:absolute md:inset-x-0 md:top-1/2 md:h-[390px] md:-translate-y-1/2">
@@ -164,8 +179,18 @@ export function FeatureCardShowcase() {
           );
         })}
       </div>
-      <div ref={progressRef} className="relative z-20 mt-3 flex justify-center gap-1.5 md:absolute md:bottom-5 md:left-0 md:right-0 md:mt-0" aria-hidden="true">
-        {stages.map((item, index) => <span key={item.tag} data-feature-dot className={`h-1 rounded-full ${index === 0 ? 'w-8 bg-[#D4AF37]' : 'w-3 bg-[#FBF4E6]/30'}`} />)}
+      <div ref={progressRef} role="group" className="relative z-20 mt-3 flex justify-center gap-1.5 md:absolute md:bottom-5 md:left-0 md:right-0 md:mt-0" aria-label="Jump to a feature">
+        {stages.map((item, index) => (
+          <button
+            key={item.tag}
+            type="button"
+            data-feature-dot
+            aria-label={`Show feature ${index + 1}: ${item.title}`}
+            title={item.title}
+            onClick={() => goToStage(index)}
+            className={`h-2 rounded-full transition-[width,background-color] duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFF3B0] ${index === 0 ? 'w-8 bg-[#D4AF37]' : 'w-3 bg-[#FBF4E6]/30'}`}
+          />
+        ))}
       </div>
     </div>
   );

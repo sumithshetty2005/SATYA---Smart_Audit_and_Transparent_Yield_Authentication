@@ -23,6 +23,8 @@ import {
   Award,
   CheckCircle2,
   Play,
+  Menu,
+  X,
 } from 'lucide-react';
 
 export function App() {
@@ -39,6 +41,7 @@ export function App() {
   // Modals
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isSpecsModalOpen, setIsSpecsModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const findingsRef = useRef<HTMLDivElement>(null);
@@ -426,14 +429,14 @@ export function App() {
       <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#FAF4E8]/90 border-b border-[#D4AF37]/40 shadow-[0_4px_20px_rgba(74,21,4,0.08)]">
         <div className="h-1.5 w-full bg-gradient-to-r from-[#4A1504] via-[#D4AF37] to-[#4A1504] opacity-90" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
-          <a href="/" className="flex items-center gap-3.5 group shrink-0">
-            <div className="satya-mark w-12 h-12 rounded-2xl bg-[#4A1504] border border-[#D4AF37] shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:rotate-[-6deg] group-hover:scale-105 shrink-0 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
+          <a href="/" className="flex min-w-0 items-center gap-2.5 sm:gap-3.5 group shrink">
+            <div className="satya-mark w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-[#4A1504] border border-[#D4AF37] shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:rotate-[-6deg] group-hover:scale-105 shrink-0 overflow-hidden">
               <img src="/assets/satya-favicon.svg" alt="" aria-hidden="true" className="h-full w-full object-cover" />
             </div>
-            <div className="flex flex-col">
+            <div className="flex min-w-0 flex-col">
               <span className="font-cinzel text-lg sm:text-xl font-extrabold tracking-tight text-[#4A1504]">SATYA</span>
-              <span className="text-[9px] sm:text-[10px] font-semibold tracking-wide text-[#7B5133]">Smart Audit &amp; Transparent Yield Authentication</span>
+              <span className="hidden sm:block text-[9px] sm:text-[10px] font-semibold tracking-wide text-[#7B5133]">Smart Audit &amp; Transparent Yield Authentication</span>
             </div>
           </a>
 
@@ -445,8 +448,8 @@ export function App() {
             <a href="/faq.html" className="hover:text-[#C59B27] transition-colors">FAQ</a>
           </nav>
 
-          <div className="flex items-center gap-2.5">
-            <a href="/audit.html" className="px-4 py-2 rounded-xl text-xs font-bold bg-[#4A1504] text-[#FFF3B0] hover:shadow-lg border border-[#D4AF37]/60 transition-all">Start an audit <ArrowRight className="inline w-3.5 h-3.5 ml-1" /></a>
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
+            <a href="/audit.html" className="px-2.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold bg-[#4A1504] text-[#FFF3B0] hover:shadow-lg border border-[#D4AF37]/60 transition-all"><span className="sm:hidden">Audit</span><span className="hidden sm:inline">Start an audit</span> <ArrowRight className="inline w-3.5 h-3.5 ml-0.5 sm:ml-1" /></a>
             {scrutinyResult && (
               <button
                 onClick={() => setIsReportModalOpen(true)}
@@ -464,28 +467,39 @@ export function App() {
               <Award className="w-4 h-4 text-[#D4AF37]" />
               <span>Specs</span>
             </button>
+            <button
+              type="button"
+              aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="satya-mobile-navigation"
+              onClick={() => setIsMobileMenuOpen((open) => !open)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D4AF37]/50 bg-white/70 text-[#4A1504] lg:hidden"
+            >
+              {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
           </div>
         </div>
-        <nav aria-label="Mobile navigation" className="lg:hidden flex items-center justify-center gap-5 px-3 pb-3 text-xs font-bold text-[#4A1504]">
-          <a href="/" className="hover:text-[#C59B27]">Home</a>
-          {currentPage === 'home' && <a href="#features" className="hover:text-[#C59B27]">Features</a>}
-          <a href="/audit.html" className="hover:text-[#C59B27]">Audit workspace</a>
-          <a href="/about.html" className="hover:text-[#C59B27]">About</a>
-          <a href="/faq.html" className="hover:text-[#C59B27]">FAQ</a>
-        </nav>
+        {isMobileMenuOpen && <nav id="satya-mobile-navigation" aria-label="Mobile navigation" className="lg:hidden grid grid-cols-2 gap-2 border-t border-[#D4AF37]/25 bg-[#FAF4E8] px-3 py-3 text-sm font-bold text-[#4A1504] sm:px-6">
+          <a href="/" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-[#EEDFB8]/60">Home</a>
+          {currentPage === 'home' && <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-[#EEDFB8]/60">Features</a>}
+          <a href="/audit.html" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-[#EEDFB8]/60">Audit workspace</a>
+          <a href="/about.html" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-[#EEDFB8]/60">About</a>
+          <a href="/faq.html" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-[#EEDFB8]/60">FAQ</a>
+          <button type="button" onClick={() => { setIsSpecsModalOpen(true); setIsMobileMenuOpen(false); }} className="rounded-lg px-3 py-2 text-left hover:bg-[#EEDFB8]/60">Project specs</button>
+        </nav>}
       </header>
 
       {/* Main Landing & Scrutiny Workspace */}
-      <main className={`flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 relative z-10 ${currentPage === 'home' ? 'py-3 space-y-6' : 'py-8 space-y-10'}`}>
+      <main className={`flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 md:px-8 relative z-10 ${currentPage === 'home' ? 'py-3 space-y-6' : 'py-5 sm:py-8 space-y-8 sm:space-y-10'}`}>
         {currentPage === 'home' && <>
         {/* Home / Landing Page Hero Banner */}
-        <section id="home" className="scroll-mt-28 relative overflow-hidden border border-[#D4AF37]/45 bg-[#F8F1E5] shadow-[0_24px_70px_rgba(74,21,4,0.12)] lg:h-[calc(100svh-10rem)] lg:min-h-[620px]">
-          <div className="grid min-h-[620px] lg:h-full lg:min-h-0 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="relative z-10 flex flex-col justify-center px-7 py-8 sm:px-12 lg:px-11 lg:py-6 xl:px-14">
+        <section id="home" className="scroll-mt-20 sm:scroll-mt-28 relative overflow-hidden border border-[#D4AF37]/45 bg-[#F8F1E5] shadow-[0_24px_70px_rgba(74,21,4,0.12)] lg:h-[calc(100svh-10rem)] lg:min-h-[620px]">
+          <div className="grid min-h-[unset] sm:min-h-[620px] lg:h-full lg:min-h-0 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="relative z-10 flex flex-col justify-center px-5 py-7 sm:px-12 lg:px-11 lg:py-6 xl:px-14">
               <p className="mb-4 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.24em] text-[#8B6825]">
                 <span className="h-px w-8 bg-[#B18A3A]" /> Evidence-led institutional review
               </p>
-              <h1 className="max-w-xl font-cinzel text-3xl font-semibold leading-[1.08] tracking-tight text-[#35180D] sm:text-4xl xl:text-[3.6rem]">
+              <h1 className="max-w-xl font-cinzel text-[2rem] font-semibold leading-[1.08] tracking-tight text-[#35180D] min-[400px]:text-3xl sm:text-4xl xl:text-[3.6rem]">
                 Clear evidence.<br />
                 <span className="font-serif font-normal italic text-[#79502A]">Confident scrutiny.</span>
               </h1>
@@ -543,7 +557,7 @@ export function App() {
         {currentPage === 'audit' && <>
             {/* PRIMARY INGESTION ZONE: PDF Upload & Drop Area */}
             <section id="audit" className="scroll-mt-28">
-            <div className="p-6 md:p-8 rounded-3xl bg-white/80 backdrop-blur-md border-2 border-[#D4AF37]/50 shadow-xl space-y-6">
+            <div className="p-4 sm:p-6 md:p-8 rounded-3xl bg-white/80 backdrop-blur-md border-2 border-[#D4AF37]/50 shadow-xl space-y-5 sm:space-y-6">
               <div className="text-center space-y-2 max-w-2xl mx-auto">
                 <h2 className="font-cinzel font-bold text-xl md:text-2xl text-[#4A1504]">
                   Upload Application Document for AICTE Scrutiny
