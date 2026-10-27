@@ -2,14 +2,18 @@
 
 import os
 import re
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import fitz  # PyMuPDF
 import torch
 from PIL import Image
+import numpy as np
 from transformers import LayoutLMv3ForTokenClassification, LayoutLMv3Processor
 
 from app.schemas.payload import ExtractedApplicationPayload, FacultyRow, LandDetails
+
+logger = logging.getLogger(__name__)
 
 
 class LayoutLMv3IngestionEngine:
@@ -30,6 +34,55 @@ class LayoutLMv3IngestionEngine:
         self.model = LayoutLMv3ForTokenClassification.from_pretrained(self.model_name)
         self.model.to(self.device)
         self.model.eval()
+        self._ocr = None
+
+    def _extract_ocr_words(
+        self, image: Image.Image, page_w: float, page_h: float
+    ) -> List[Tuple[float, float, float, float, str, int, int, int]]:
+        """Run PaddleOCR and convert recognized line boxes to PyMuPDF word tuples."""
+        if self._ocr is None:
+            from paddleocr import PaddleOCR
+
+            self._ocr = PaddleOCR(
+                lang="en",
+                use_doc_orientation_classify=False,
+                use_doc_unwarping=False,
+                use_textline_orientation=False,
+            )
+
+        results = self._ocr.predict(np.asarray(image))
+        words_data = []
+        for result in results or []:
+            result_json = getattr(result, "json", result)
+            if callable(result_json):
+                result_json = result_json()
+            if isinstance(result_json, dict) and "res" in result_json:
+                result_json = result_json["res"]
+            if not isinstance(result_json, dict):
+                continue
+
+            texts = result_json.get("rec_texts")
+            if texts is None:
+                texts = []
+            boxes = result_json.get("rec_boxes")
+            if boxes is None:
+                boxes = result_json.get("dt_polys")
+            if boxes is None:
+                boxes = result_json.get("rec_polys")
+            if boxes is None:
+                boxes = []
+            sx, sy = page_w / image.width, page_h / image.height
+            for index, (text, points) in enumerate(zip(texts, boxes)):
+                text = str(text).strip()
+                if not text:
+                    continue
+                coords = np.asarray(points, dtype=float).reshape(-1, 2)
+                if not len(coords):
+                    continue
+                x0, y0 = coords.min(axis=0)
+                x1, y1 = coords.max(axis=0)
+                words_data.append((x0 * sx, y0 * sy, x1 * sx, y1 * sy, text, 0, index, 0))
+        return words_data
 
     @staticmethod
     def _normalize_box(
@@ -370,6 +423,15 @@ class LayoutLMv3IngestionEngine:
             # 2. Extract text tokens and normalized 2D bounding boxes (x0, y0, x1, y1)
             raw_text = page.get_text()
             words_data = page.get_text("words")  # (x0, y0, x1, y1, word, block_no, line_no, word_no)
+
+            # Use PaddleOCR for scanned/image-only pages; keep native PDF text when present.
+            if len(raw_text.strip()) < 20:
+                try:
+                    words_data = self._extract_ocr_words(image, page_w, page_h)
+                    if words_data:
+                        raw_text = "\n".join(item[4] for item in words_data)
+                except Exception as exc:
+                    logger.warning("PaddleOCR unavailable for scanned PDF page %s: %s", page_num, exc)
 
             words: List[str] = []
             norm_boxes: List[List[int]] = []
