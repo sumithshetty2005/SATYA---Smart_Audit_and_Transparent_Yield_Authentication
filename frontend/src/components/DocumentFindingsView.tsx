@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -11,6 +11,8 @@ import {
   RotateCcw,
   Award,
   ClipboardList,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { DecisionSupportMatrix } from './DecisionSupportMatrix';
 import { Layer3SourceVerification } from './Layer3SourceVerification';
@@ -99,6 +101,33 @@ export const DocumentFindingsView: React.FC<Props> = ({
   const [elaSliderPos, setElaSliderPos] = useState<number>(50);
   const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
   const [expandedCitationId, setExpandedCitationId] = useState<string | null>(null);
+  const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
+  const [canScrollTabsRight, setCanScrollTabsRight] = useState(false);
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const tabs = tabsRef.current;
+    if (!tabs) return;
+
+    const updateTabScrollState = () => {
+      setCanScrollTabsLeft(tabs.scrollLeft > 2);
+      setCanScrollTabsRight(tabs.scrollLeft + tabs.clientWidth < tabs.scrollWidth - 2);
+    };
+
+    updateTabScrollState();
+    tabs.addEventListener('scroll', updateTabScrollState, { passive: true });
+    window.addEventListener('resize', updateTabScrollState);
+    return () => {
+      tabs.removeEventListener('scroll', updateTabScrollState);
+      window.removeEventListener('resize', updateTabScrollState);
+    };
+  }, []);
+
+  const scrollTabs = (direction: -1 | 1) => {
+    const tabs = tabsRef.current;
+    if (!tabs) return;
+    tabs.scrollBy({ left: direction * Math.max(180, tabs.clientWidth * 0.72), behavior: 'smooth' });
+  };
 
   const needsForensicReview = result.layer2.tamperingVerdict !== 'CLEAN';
   const needsSourceReview = !result.layer3.pkiValid || !result.layer3.digiLockerMatch || result.layer3.postSigningBytesAltered || !result.layer3.qrPayloadValid;
@@ -240,7 +269,30 @@ export const DocumentFindingsView: React.FC<Props> = ({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mt-5 pt-4 border-t border-[#D4AF37]/30 flex items-center gap-1.5 overflow-x-auto overscroll-x-contain touch-pan-x pb-2 scrollbar-none">
+        <div className="mt-5 flex items-center gap-2 border-t border-[#D4AF37]/30 pt-4 pb-2">
+          <div role="group" aria-label="Scroll through findings tabs" className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => scrollTabs(-1)}
+              disabled={!canScrollTabsLeft}
+              aria-controls="findings-tabs"
+              aria-label="Scroll to previous findings tabs"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D4AF37]/35 bg-white/70 text-[#4A1504] transition hover:bg-[#F5E6C8] disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollTabs(1)}
+              disabled={!canScrollTabsRight}
+              aria-controls="findings-tabs"
+              aria-label="Scroll to next findings tabs"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D4AF37]/35 bg-white/70 text-[#4A1504] transition hover:bg-[#F5E6C8] disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+          <div ref={tabsRef} id="findings-tabs" role="group" aria-label="Audit finding sections" className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain touch-pan-x pb-1 scrollbar-none">
           {[
             { id: 'summary', label: 'Execution Dashboard', icon: <Award className="w-4 h-4" /> },
             {
@@ -279,7 +331,7 @@ export const DocumentFindingsView: React.FC<Props> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                className={`flex shrink-0 items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
                     ? 'bg-[#4A1504] text-[#F5E6C8] shadow-md border border-[#D4AF37]'
                     : 'bg-white/60 hover:bg-[#FAF4E8] text-[#2B1609]/80 border border-[#D4AF37]/25'
@@ -295,6 +347,7 @@ export const DocumentFindingsView: React.FC<Props> = ({
               </button>
             );
           })}
+          </div>
         </div>
       </div>
 

@@ -1,149 +1,186 @@
----
-title: Aicte Compliance Backend
-emoji: 📈
-colorFrom: purple
-colorTo: purple
-sdk: gradio
-sdk_version: 6.30.0
-python_version: '3.12'
-app_file: app.py
-pinned: false
----
+<p align="center">
+  <img src="frontend/public/assets/satya-favicon.svg" alt="SATYA logo" width="76" height="76" />
+</p>
 
-# SATYA — Smart Audit and Transparent Yield Authentication
-### AICTE Multi-Layer Compliance & Forensic Verification Engine
+<h1 align="center">SATYA</h1>
 
-SATYA is an intelligent, multi-layered regulatory auditing and document integrity platform designed to automate and verify institutional applications under the **AICTE Approval Process Handbook (APH 2024–2027)**.
+<p align="center"><strong>Smart Audit and Transparent Yield Authentication</strong></p>
 
----
+<p align="center">
+  An evidence-led review workspace for technical education institution filings.
+</p>
 
-## 🏛️ Architecture Overview
+<p align="center">
+  <a href="https://satya-brown-chi.vercel.app/">Open the SATYA web app</a> ·
+  <a href="https://satya-brown-chi.vercel.app/audit.html">Open the audit workspace</a>
+</p>
 
-See the [SATYA architecture diagram](docs/architecture.md) for the current application components, audit flow, data stores, and prototype/integration boundaries. The API exposes layered capabilities, but a document does not automatically pass through every layer in one request.
+## What SATYA does
 
-### Layer 1: Document Ingestion & Layout Analysis (`app/ingestion/`)
-- Powered by `microsoft/layoutlmv3-base`.
-- Tokenizes page renders, extracts 2D bounding boxes, and classifies regions (headers, key-value tables, institution details, faculty rosters).
+SATYA is a project that helps reviewers organize institutional application documents and inspect evidence relevant to the **AICTE Approval Process Handbook (APH) 2024–2027**. It brings document extraction, visual-forensics signals, source checks, rule references, infrastructure tools, and audit records into one review workflow.
 
-### Layer 2: Visual Forensics Engine (`app/forensics/`)
-- **Error Level Analysis (ELA)**: Re-compression differential matrices to expose digital splicing and forged seals.
-- **Laplacian Edge Inspection**: Detects localized text smoothing, erasure, and synthetic flattening.
-- **PDF Metadata Forensics**: Revision history traversal, incremental updates, and modification timestamps.
+The goal is to help an official see **what was checked, what evidence supports a finding, what could not be checked, and what may need follow-up**. SATYA is a decision-support project; its results do not replace an authorized officer's review or constitute an official AICTE decision.
 
-### Layer 3: Authoritative Source Verification (`app/verification/`)
-- **Cryptographic PKI Signatures**: Incremental X.509 certificate parsing, digital signature integrity, and post-signing alteration detection.
-- **2D QR Code Validation**: Native PyMuPDF & OpenCV QR detection with authoritative government domain resolution (`*.aicte-india.org`, `*.gov.in`).
+SATYA was developed in response to AICTE problem statement **SH26261**. It is an independent project and is not commissioned, operated, or endorsed by AICTE.
 
-### Layer 4: Agentic GraphRAG & Regulatory Engine (`app/knowledge/`)
-- **Structure-Aware Chunking**: Hierarchical parsing of chapters, sections, tables, and clauses (~500–800 tokens, 10–15% overlap).
-- **Neo4j Knowledge Graph**: Seeds regulatory entities (`:RegulatoryClause`, `:Programme`, `:ApplicationType`, `:Requirement`, `:LocationType`, `:Exception`, `:Level`, `:TERFee`) and directed relationships (`:MANDATES`, `:GOVERNED_BY`, `:HAS_EXCEPTION`, `:APPLIES_TO`, `:OFFERS_LEVEL`, `:REQUIRES_FEE`).
-- **Hybrid Retrieval & RRF**: Dual-path BM25 exact matching + BGE-M3 1024-dimensional dense vector embeddings fused via Reciprocal Rank Fusion ($k=60$).
-- **LangGraph Multi-Agent Orchestration**:
-  - `Retriever Agent`: Queries hybrid stores and executes controlled 1- to 2-hop Neo4j traversals dynamically filtered on application facts.
-  - `Compliance Evaluator Agent`: Audits Layer 1–3 outputs against APH statutory formulas.
-  - `Audit Synthesizer Agent`: Synthesizes final regulatory verdicts citing exact APH clauses.
-- **Dual LLMs**: Primary Groq gpt-oss-120b (`langchain-groq`) with automatic Google Gemini API fallback (`langchain-google-genai`) and deterministic offline evaluation.
+## How a review is organized
 
-### Layer 5: Analytics, Audit Reporting & Dashboard Integration (`app/analytics/`)
-- **LayerFiveAnalyticsEngine (`report_generator.py`)**:
-  - Multi-layer synthesis producing unified `LayerFiveAuditReport` (JSON) and official publication-grade **AICTE Compliance Audit Clearance Certificates** (PDF) via ReportLab and PyMuPDF drawing.
-  - Includes receipt tracking UUID, timestamp, institution details, multi-layer trust score, and itemized breakdown tables for Visual Forensics (L2), Source Verification (L3), and GraphRAG Citations (L4).
-- **Institutional Health Index (IHI) (`dashboard_services.py`)**:
-  - Multi-factor historical/departmental performance scoring (Regulatory Compliance 35%, Forensic Authenticity 25%, Cryptographic Provenance 20%, Cadre/Infrastructure Stability 20%) with letter grades (`A+`, `A`, `B`, `C`).
-- **Cross-Institutional Anomaly Detection (`dashboard_services.py`)**:
-  - **Duplicate Land Parcel Detection**: Flags duplicate survey/plot/khasra numbers claimed across distinct institutions (double-pledging).
-  - **Ghost Faculty Collision Detection**: Flags concurrent full-time faculty appointments registered across distinct colleges.
-- **Frontend Dashboard Service**: Aggregates approval rates, risk level distribution, active anomalies, and recent audit feeds.
+The audit workspace presents six areas of review:
 
----
+1. **Document ingestion** — read PDF pages and extract text, layout, and application fields.
+2. **Visual forensics** — show image and PDF signals such as Error Level Analysis, edge/blur measures, and metadata for further inspection.
+3. **Source verification** — inspect available QR, signature, and provenance evidence; show unavailable external checks as unavailable.
+4. **APH rule review** — retrieve relevant handbook material and present rule-linked observations for a reviewer.
+5. **Infrastructure review and reporting** — provide separate CAD, image, geolocation, and report/analytics capabilities where supported by the available input and configuration.
+6. **Audit trail** — record or inspect review events and decision hashes in the Merkle audit ledger.
 
-## 🚀 Quickstart & Setup
+The web app also includes a **Decision Brief** that groups review signals and suggests follow-up questions for officials. Recommendations are advisory and should be checked against the underlying evidence and current rules.
 
-### 1. Installation
+### Architecture reference
+
+The image below is the project's architecture reference. It includes design-level and optional components; it should not be read as evidence that every integration is configured or active in the current deployment. See [the implementation notes](docs/architecture.md) for the request flow and current boundaries.
+
+![SATYA system architecture reference](docs/images/satya-architecture.png)
+
+## Screenshots
+
+These screenshots show the web app and sample review views. Sample findings are illustrative and are not a live regulatory decision or issuer verification.
+
+### Landing page
+
+![SATYA landing page](docs/images/landing-page.png)
+
+### Audit workspace and upload
+
+![SATYA audit workspace upload screen](docs/images/audit-upload.png)
+
+### Findings overview
+
+![SATYA findings overview](docs/images/audit-findings.png)
+
+### Review matrix
+
+![SATYA review matrix](docs/images/review-matrix.png)
+
+### APH GraphRAG rule review
+
+![SATYA GraphRAG rules screen](docs/images/graphrag-rules.png)
+
+### APH rule detail view
+
+![SATYA GraphRAG rule detail screen](docs/images/graphrag-rule-detail.png)
+
+### Repeated GraphRAG capture
+
+![Additional capture of the SATYA GraphRAG rules screen](docs/images/graphrag-rules-repeat-capture.png)
+
+## Technology
+
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS, GSAP, Three.js, Framer Motion, and Lucide icons.
+- **Backend:** Python, FastAPI, and Pydantic.
+- **Document and evidence processing:** PyMuPDF, LayoutLMv3/Transformers, OpenCV, Pillow, pdfminer.six, pyHanko, Shapely, and Ultralytics.
+- **Regulatory retrieval and reasoning:** LangChain, LangGraph, BM25, sentence-transformers, optional Neo4j, and optional Groq or Google Gemini providers.
+- **Reporting and integrity:** ReportLab, cryptography, SHA-256, SQLite for the Merkle audit ledger.
+
+External services and model providers require their own configuration. Optional items in this list may fall back to local or rule-based behavior, or report as unavailable, depending on the code path and environment.
+
+## Run locally
+
+### Requirements
+
+- Python 3.12 is the recommended backend environment.
+- Node.js and npm for the frontend.
+
+### 1. Install backend dependencies
+
+From the repository root:
+
 ```bash
-git clone https://github.com/sumithshetty2005/SATYA---Smart_Audit_and_Transparent_Yield_Authentication.git
-cd SATYA---Smart_Audit_and_Transparent_Yield_Authentication
+python -m venv .venv
+```
+
+Activate the environment, then install dependencies:
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configuration
-Copy the template configuration:
+On Windows PowerShell, activate it with:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+### 2. Configure optional services
+
+Create a local environment file from the template:
+
 ```bash
 cp .env.example .env
 ```
-Set your credentials in `.env` (Optional — engine runs in deterministic offline mode if keys are absent):
-```env
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=password
-GROQ_API_KEY=gsk_your_groq_key
-GEMINI_API_KEY=your_gemini_key
-```
 
-### 3. Run FastAPI Application
-```bash
-python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-Interactive API documentation: `http://localhost:8000/docs`
+Add credentials only for services you intend to use. Neo4j, Groq, Gemini, and embedding settings are documented in `.env.example`. Do not commit `.env` or put API keys in frontend code.
 
----
+The backend requirements include machine-learning and computer-vision packages, so installation and first-run model setup may take time and disk space.
 
-## 🧪 Testing & Regulatory Evaluations
+### 3. Start the API
 
-Run the core compliance test suite:
-```bash
-python -m pytest tests/test_compliance.py
-```
-
-Run the Layer 5 analytics, reporting & anomaly test suite:
-```bash
-python -m pytest tests/test_layer5_analytics.py
-```
-
-Run the 8 APH 2024-2027 scenario evaluation benchmarks:
-```bash
-python tests/test_eval_scenarios.py
-```
-
----
-
-## 📡 API Endpoints
-
-- `POST /api/v1/extract`: Layer 1 LayoutLMv3 document extraction.
-- `POST /api/v1/forensics`: Layer 2 Visual Error Level Analysis & edge tampering detection.
-- `POST /api/v1/verify-source`: Layer 3 Authoritative PKI & 2D QR verification.
-- `POST /api/v1/compliance-audit`: Layer 4 Consolidated Agentic GraphRAG Regulatory Audit.
-- `POST /api/v1/reports/generate`: Layer 5 Synthesizes consolidated audit clearance report (JSON).
-- `POST /api/v1/reports/generate-pdf`: Layer 5 Streams official publication-grade AICTE Compliance Certificate (PDF).
-- `GET /api/v1/reports/download-pdf`: Layer 5 Downloads pre-generated audit certificate by Report ID.
-- `GET /api/v1/analytics/dashboard-summary`: Layer 5 Aggregated dashboard statistics, approval rates, and anomaly alerts.
-- `GET /api/v1/analytics/anomalies`: Layer 5 List of detected cross-institutional land/faculty collisions.
-- `GET /api/v1/analytics/health-index`: Layer 5 Institutional Health Index (IHI) rankings and recommendations.
-- `GET /api/v1/problem-statements`: Problem Statement Provider Portal challenge list with multi-parameter filtering.
-- `POST /api/v1/problem-statements/submit-ticket`: "Ticket-Flow" Challenge queueing with real-time AICTE regulatory pre-check.
-- `GET /api/v1/problem-statements/stats`: Platform metrics and active grant totals.
-- `POST /api/v1/problem-statements/{id}/apply`: Student/Innovator proposal submission endpoint.
-
----
-
-## 🏛️ AICTE Problem Statement Provider Portal
-
-The application includes a responsive web application celebrating the **Vedic Architectural Aesthetic** of the AICTE Approval Process Handbook (APH 2024–2027) cover, fused with **Squared-Inspired Card Motion Architecture**:
-
-- **Vedic Aesthetic**: Vintage parchment texture, distressed gold leaf filigree borders, Maharishi Baudhayana (800 BCE) cutout, Sulba-Sutra Sanskrit Shloka (`दीर्घचतुरस्रस्याक्ष्णया रज्जुः...`), and Pythagorean geometric proof diagram ($c^2 = a^2 + b^2$).
-- **3D Gyroscopic Card System**: Tilt physics, multi-layer depth parallax (`translateZ`), dynamic cursor spotlight glow, and live interactive simulation canvases (`CardMediaReel`).
-- **Ticket-Flow Module**: 4-step challenge creation wizard for Ministries, PSUs, and Industry with real-time card preview and SHA-256 provenance verification receipt.
-- **Three.js WebGL Engine**: Ambient golden dust particles and rotating 3D Sacred Geometry Mandala.
-
-### Starting the Frontend & Backend:
+From the repository root:
 
 ```bash
-# 1. Start FastAPI Backend (Port 8000)
-python main.py
+python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
 
-# 2. Start React + Vite Frontend (Port 5173 with auto-proxy to 8000)
+FastAPI health check: `http://127.0.0.1:8000/health`
+Interactive API documentation: `http://127.0.0.1:8000/docs`
+
+### 4. Start the web app
+
+In a second terminal:
+
+```bash
 cd frontend
 npm install
 npm run dev
 ```
-Visit `http://localhost:5173` or `http://localhost:8000` to interact with the portal!
+
+Open `http://localhost:5173`. The Vite development server proxies `/api` requests to the backend at `http://127.0.0.1:8000`.
+
+The frontend has separate entry pages for the landing page, audit workspace, About, and FAQ. The production build is configured in `frontend/vite.config.ts`.
+
+## Deploy on Render
+
+The repository's root `Dockerfile` starts the FastAPI application with Uvicorn and listens on Render's assigned `PORT`. Create a Docker Web Service connected to this repository and configure the required environment variables in Render. The frontend is served by Vercel separately. Before using hosted audit APIs, update the `/api` rewrite in `frontend/vercel.json` to point to the Render service URL.
+
+## API overview
+
+FastAPI's interactive `/docs` page lists request formats and responses. Main API areas include:
+
+- **Document and compliance:** `POST /api/v1/extract`, `POST /api/v1/forensics`, `POST /api/v1/verify-source`, and `POST /api/v1/compliance-audit`.
+- **External source checks:** `/api/v1/verification/...`.
+- **Infrastructure analysis:** `/api/v1/layer5-vision/...` for CAD, EXIF, asset detection, and combined analysis.
+- **Reports and analytics:** `/api/v1/reports/...` and `/api/v1/analytics/...`.
+- **Audit ledger:** `/api/v1/merkle/...`.
+- **Problem statement portal:** `/api/v1/problem-statements/...`.
+
+## Current scope and limitations
+
+- The instant positive and risk walkthroughs use illustrative sample data. They are separate from a document-derived audit and are intended to demonstrate how the interface presents findings.
+- DigiLocker and registry checks require an authorized, configured integration. Without one, the service reports that verification is unavailable; it does not mean a record passed or failed.
+- CAD measurements depend on usable drawing geometry and a supplied or detected scale. If a scale or route cannot be established, an area or egress measurement should remain unassessed.
+- Optional LLM, embedding, and graph services depend on local setup. The project can use fallbacks for some paths; a fallback is not the same as a live external verification.
+- Dashboard and problem-statement information may be held in process memory, while the local Merkle ledger uses SQLite. This is not a claim of production-scale persistence or a public blockchain.
+- SATYA is not an official AICTE service. Always confirm findings against original records, applicable official documents, and authorized review procedures.
+
+## Repository guide
+
+- `frontend/` — React application, separate page entry points, and static assets.
+- `app/` — FastAPI routers and document, vision, verification, knowledge, and analytics modules.
+- `main.py` — current root FastAPI application entry point.
+- `docs/architecture.md` — detailed architecture flow and implementation boundaries.
+- `docs/images/` — architecture diagram and reader-facing screenshots used in this README.
+- `tests/` — automated checks and scenario fixtures.
+
+## License
+
+No license is specified in this repository at this time. Contact the project maintainers before reusing or redistributing the source.
