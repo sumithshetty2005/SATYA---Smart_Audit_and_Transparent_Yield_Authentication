@@ -38,17 +38,18 @@ export function FeatureCardShowcase() {
     const progressDots = progressRef.current ? Array.from(progressRef.current.querySelectorAll<HTMLElement>('[data-feature-dot]')) : [];
     if (!stage || cards.length !== stages.length) return;
 
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const compact = window.matchMedia('(max-width: 767px)').matches;
-    if (reduceMotion || compact) {
-      if (deck) {
-        deck.style.position = 'relative';
-        deck.style.inset = 'auto';
-        deck.style.height = 'auto';
-        deck.style.transform = 'none';
-        deck.style.display = 'grid';
-        deck.style.gap = '1rem';
-      }
+    let context: gsap.Context | null = null;
+    const mobileQuery = window.matchMedia('(max-width: 767px)');
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const setStaticCards = () => {
+      if (!deck) return;
+      deck.style.position = 'relative';
+      deck.style.inset = 'auto';
+      deck.style.height = 'auto';
+      deck.style.transform = 'none';
+      deck.style.display = 'grid';
+      deck.style.gap = '1rem';
       cards.forEach((card) => {
         card.style.position = 'relative';
         card.style.left = 'auto';
@@ -60,10 +61,44 @@ export function FeatureCardShowcase() {
         card.style.opacity = '1';
         card.style.visibility = 'visible';
       });
-      return;
-    }
+    };
 
-    const context = gsap.context(() => {
+    const clearInlineLayout = () => {
+      if (context) {
+        context.revert();
+        context = null;
+      }
+      scrollTriggerRef.current = null;
+      if (deck) {
+        deck.style.position = '';
+        deck.style.inset = '';
+        deck.style.height = '';
+        deck.style.transform = '';
+        deck.style.display = '';
+        deck.style.gap = '';
+      }
+      cards.forEach((card) => {
+        card.style.position = '';
+        card.style.left = '';
+        card.style.top = '';
+        card.style.width = '';
+        card.style.height = '';
+        card.style.minHeight = '';
+        card.style.transform = '';
+        card.style.opacity = '';
+        card.style.visibility = '';
+        card.style.zIndex = '';
+      });
+    };
+
+    const setupLayout = () => {
+      clearInlineLayout();
+      if (mobileQuery.matches || motionQuery.matches) {
+        setStaticCards();
+        return;
+      }
+
+      context = gsap.context(() => {
       const cardOffset = () => Math.min(stage.clientWidth * 0.37, 390);
       const updateProgress = (active: number) => {
         if (counterRef.current) counterRef.current.textContent = `${String(active + 1).padStart(2, '0')} / ${String(stages.length).padStart(2, '0')}`;
@@ -128,10 +163,16 @@ export function FeatureCardShowcase() {
           },
         });
       });
-    }, stage);
+      }, stage);
+    };
 
+    setupLayout();
+    mobileQuery.addEventListener('change', setupLayout);
+    motionQuery.addEventListener('change', setupLayout);
     return () => {
-      context.revert();
+      mobileQuery.removeEventListener('change', setupLayout);
+      motionQuery.removeEventListener('change', setupLayout);
+      clearInlineLayout();
       scrollTriggerRef.current = null;
     };
   }, []);
@@ -139,7 +180,7 @@ export function FeatureCardShowcase() {
   return (
     <div
       ref={stageRef}
-      className="satya-feature-stage relative min-h-[590px] overflow-hidden border border-[#D4AF37]/45 bg-[#2B1609] px-4 py-7 text-[#FBF4E6] shadow-[0_24px_60px_rgba(43,22,9,.2)] sm:px-8 md:h-[min(70vh,680px)] md:min-h-[560px] md:px-12 md:py-10"
+      className="satya-feature-stage relative min-h-[590px] overflow-visible border border-[#D4AF37]/45 bg-[#2B1609] px-4 py-7 text-[#FBF4E6] shadow-[0_24px_60px_rgba(43,22,9,.2)] sm:px-8 md:h-[min(70vh,680px)] md:min-h-[560px] md:overflow-hidden md:px-12 md:py-10"
       aria-label="SATYA review workflow feature cards"
     >
       <div className="pointer-events-none absolute inset-0 opacity-40" aria-hidden="true">
@@ -152,15 +193,15 @@ export function FeatureCardShowcase() {
         <span ref={counterRef} aria-live="polite" className="font-mono text-xs tracking-widest text-[#F3D77B]">01 / 06</span>
       </div>
 
-      <div ref={cardsRef} className="satya-feature-deck relative z-10 mx-auto mt-6 h-[430px] w-full md:mt-0 md:absolute md:inset-x-0 md:top-1/2 md:h-[390px] md:-translate-y-1/2">
+      <div ref={cardsRef} className="satya-feature-deck relative z-10 mx-auto mt-6 grid h-auto w-full gap-4 md:mt-0 md:absolute md:inset-x-0 md:top-1/2 md:block md:h-[390px] md:-translate-y-1/2">
         {stages.map((item, index) => {
           const Icon = item.icon;
           return (
             <article
               key={item.tag}
               data-feature-card
-              className="satya-feature-deck-card absolute left-1/2 top-1/2 flex h-[400px] w-[min(100%,520px)] -translate-x-1/2 -translate-y-1/2 flex-col justify-between overflow-hidden border border-[#D4AF37]/60 bg-[#F8F1E5] p-5 text-[#2B1609] shadow-[0_22px_55px_rgba(0,0,0,.35)] sm:p-8 md:h-[360px] md:p-9"
-              style={{ visibility: index < 3 ? 'visible' : 'hidden' }}
+              className="satya-feature-deck-card relative left-auto top-auto flex h-auto min-h-[330px] w-full translate-x-0 translate-y-0 flex-col justify-between overflow-hidden border border-[#D4AF37]/60 bg-[#F8F1E5] p-5 text-[#2B1609] shadow-[0_22px_55px_rgba(0,0,0,.35)] sm:p-8 md:absolute md:left-1/2 md:top-1/2 md:h-[360px] md:w-[min(100%,520px)] md:-translate-x-1/2 md:-translate-y-1/2 md:p-9"
+              style={{ visibility: window.matchMedia('(max-width: 767px)').matches || index < 3 ? 'visible' : 'hidden' }}
             >
               <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full border border-[#C59B27]/25 shadow-[0_0_0_22px_rgba(197,155,39,.05),0_0_0_44px_rgba(197,155,39,.04)]" aria-hidden="true" />
               <div className="relative flex items-start justify-between">
